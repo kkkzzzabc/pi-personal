@@ -4,6 +4,13 @@ The faux model (`scripts/faux-model.ts`) answers each model call with the
 next response in the scenario. After the list is exhausted, every call
 returns `whenExhausted`.
 
+Concurrent requests share the same scenario. Each request reserves its response
+and persists the next position synchronously when it enters the provider, before
+response hooks or streaming run. Responses are assigned in request-admission
+order, not completion order; parallel child scheduling does not guarantee which
+child receives which response. There is no fixed concurrency limit. An admitted
+request consumes its position even if it is later aborted.
+
 ```json
 {
   "responses": [
@@ -34,14 +41,18 @@ returns `whenExhausted`.
 
 ## Templates
 
-Resolved in every string, at each model call:
+Resolved in every string using inputs captured when each request is admitted:
 
 | Template | Value |
 |---|---|
-| `{{cwd}}` | pi's working directory (the run's work dir) |
+| `{{cwd}}` | Working directory from the owning TUI session's latest context event (the run's work dir) |
 | `{{env:NAME}}` | Environment variable of the pi process |
-| `{{entry:<customType>.<dot.path>}}` | Field of the latest `custom` session entry of that type on the current branch (written with `pi.appendEntry`) |
-| `{{lastUser}}` | Text of the latest user message |
+| `{{entry:<customType>.<dot.path>}}` | Field of the latest `custom` session entry of that type on the owning TUI session's captured branch (written with `pi.appendEntry`) |
+| `{{lastUser}}` | For the owning session, the latest user message from its context event before custom notes are converted to user-role messages; for children or requests without a matching session ID, the latest user message in that request's transcript |
+
+Child runtimes reuse the provider but do not update its owning-session context
+snapshot. Custom-entry templates therefore do not inspect a child's independent
+session branch. Environment values are also captured per admitted request.
 
 An unresolved template does not guess: the model answers
 `[tui-check] Template error in response <n>: …` instead, which is visible on

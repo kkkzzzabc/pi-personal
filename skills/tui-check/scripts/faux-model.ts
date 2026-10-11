@@ -3,7 +3,8 @@
  *
  * Registers provider `faux` with model `faux-1` whose responses come from the
  * scenario file in TUI_CHECK_SCENARIO (see references/scenario.md). Templates
- * are resolved per model call from the current session branch and cwd.
+ * use per-request transcript/environment inputs and the owning session's branch
+ * and cwd, captured when the request enters the provider.
  * A template that cannot be resolved produces a visible error text instead of
  * a guessed value. After the scenario is exhausted every call returns
  * `whenExhausted`.
@@ -15,7 +16,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fauxAssistantMessage, fauxText, fauxThinking, fauxToolCall } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
+import { getApiProvider, registerFauxProvider } from "@earendil-works/pi-ai/compat";
 import { type EntryLike, lastUserText, parseScenario, resolveTemplates, type Scenario } from "./lib.ts";
 
 export default function tuiCheckFauxModel(pi: ExtensionAPI): void {
@@ -31,11 +32,12 @@ export default function tuiCheckFauxModel(pi: ExtensionAPI): void {
 		}
 	}
 
-	let snapshot: { cwd: string; entries: EntryLike[]; lastUser?: string } = { cwd: process.cwd(), entries: [] };
+	let snapshot: { cwd: string; entries: EntryLike[]; sessionId?: string; lastUser?: string } = { cwd: process.cwd(), entries: [] };
 	pi.on("context", async (event, ctx) => {
 		snapshot = {
 			cwd: ctx.cwd,
 			entries: ctx.sessionManager.getBranch() as EntryLike[],
+			sessionId: ctx.sessionManager.getSessionId(),
 			lastUser: lastUserText(event.messages as unknown as Record<string, unknown>[]),
 		};
 	});
@@ -59,14 +61,13 @@ export default function tuiCheckFauxModel(pi: ExtensionAPI): void {
 
 	const faux = registerFauxProvider({ models: [{ id: "faux-1", name: "tui-check faux", reasoning: true }] });
 	pi.on("session_shutdown", async () => faux.unregister());
-	const respond = () => {
-		faux.appendResponses([respond]);
+	const delegate = getApiProvider(faux.api)!.streamSimple;
+	const respond = (index: number, inputs: Parameters<typeof resolveTemplates>[1]) => {
 		if (!scenario) return fauxAssistantMessage(`[tui-check] Scenario error: ${loadError}`);
-		const index = advance();
 		const step = scenario.responses[index];
 		if (!step) return fauxAssistantMessage(scenario.whenExhausted);
 		try {
-			const resolved = resolveTemplates(step, { ...snapshot, env: process.env });
+			const resolved = resolveTemplates(step, inputs);
 			const blocks = [
 				...(resolved.thinking !== undefined ? [fauxThinking(resolved.thinking)] : []),
 				...(resolved.text !== undefined ? [fauxText(resolved.text)] : []),
@@ -77,13 +78,28 @@ export default function tuiCheckFauxModel(pi: ExtensionAPI): void {
 			return fauxAssistantMessage(`[tui-check] Template error in response ${index}: ${(error as Error).message}`);
 		}
 	};
-	faux.setResponses([respond]);
 
 	const model = faux.getModel();
 	pi.registerProvider(model.provider, {
 		baseUrl: model.baseUrl,
 		apiKey: "tui-check-faux",
 		api: faux.api,
+		streamSimple: (requestModel, context, options) => {
+			// The host removes a queued factory synchronously but invokes it later.
+			// Reserve and enqueue at admission, not inside the response factory.
+			const index = scenario ? advance() : 0;
+			const inputs = {
+				...snapshot,
+				// Owner context still distinguishes custom notes from user messages.
+				// Child transcripts have a different session ID and their own task.
+				lastUser: snapshot.sessionId !== undefined && options?.sessionId === snapshot.sessionId
+					? snapshot.lastUser
+					: lastUserText(context.messages as unknown as Record<string, unknown>[]),
+				env: { ...process.env },
+			};
+			faux.appendResponses([() => respond(index, inputs)]);
+			return delegate(requestModel, context, options);
+		},
 		models: faux.models.map((entry) => ({
 			id: entry.id,
 			name: entry.name,
