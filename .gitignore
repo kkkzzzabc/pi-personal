@@ -16,7 +16,7 @@ __pycache__/
 .swiftpm/
 
 # Generated visual explanations and local QA evidence
-/artifacts/visuals/
+/artifacts/
 
 # Logs
 *.log
