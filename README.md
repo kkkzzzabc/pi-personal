@@ -44,11 +44,15 @@ Project work is indexed in [the backlog](docs/backlog/) (`python3 scripts/backlo
 | `plan-mode/` | Extension | Plan ↔ build modes with a plan file and an approval flow (see [Plan mode](#plan-mode)) |
 | `ask-user/` | Extension | Independent parent-TUI `ask_user`: choices, custom answers, comments, review, discussion, and cancellation (see [User questions](#user-questions)) |
 | `subagent/` | Extension | `subagent` tool: read-only `explorer` and `reviewer` child agents with fresh context (see [Subagents](#subagents)) |
+| `prompt-suggestions/` | Extension | Optional next-user prompt as ghost text; Tab accepts without submitting (see [Next-prompt suggestions](#next-prompt-suggestions)) |
 | `review` | Prompt | `/review [target or focus]`: parallel reviewer subagents, verified and summarized; asks before fixing |
 | `explain-with-visuals` | Skill | Editorial visual explanations: offline HTML, layered prose, local browser QA and delivery |
+| `perf-audit` | Skill | Audit and fix pi performance without a reference fork: measure first, fix only superlinear or unbounded paths, prove with count-based tests |
 | `pi-docs` | Skill | Map of pi's documentation |
 | `pi-web` | Skill | One web entry point: ego for generic browser work; Aside for service integrations, delegation, and designated existing state |
 | `tui-check` | Skill | Verify pi changes in the real pi TUI with agent-tty and a scripted faux model; requires agent-tty 0.5.x |
+| `pi-session-find` | Skill | List, search, and inspect local pi sessions (read-only, stdout only) |
+| `pi-session-stats` | Skill | Cost, model/tool timing, and workload sizes from local pi sessions (read-only) |
 
 The local Pi fork provides skill-based documentation guidance in its core.
 The former `claude.ts` extension was retired; see
@@ -329,6 +333,88 @@ Progress/results show actual models and transition reasons; result details inclu
 bounded attempt records and combined usage/tool counts, so failed-attempt expense
 is not hidden. Pi's resolved model metadata supplies context/output limits and
 pricing; no separate subagent context-window configuration is needed.
+
+## Next-prompt suggestions
+
+`extensions/prompt-suggestions/` independently proposes one next-user prompt after
+Pi fully settles a successful text response. It does not continue the agent,
+change documents, or require subagents, summaries, plan-mode, or a todo tracker.
+Design: [next-prompt plan](docs/plans/2026-10-12-next-prompt-suggestions.md).
+
+- In an empty idle editor, the optional suggestion appears as muted ghost text.
+- **Tab accepts into editable input; it does not submit.** Edit it, then use your
+  normal submit action (usually Enter). Enter before acceptance never sends the
+  ghost suggestion.
+- Typing, paste, history navigation, Escape, a new run, session/branch/model
+  change, compaction, or a blocking dialog discards the candidate and pending
+  work. Clearing your text does not revive an old candidate.
+- Normal slash/path completion and application controls remain available.
+  Registered extension shortcuts keep priority over ghost acceptance, and the
+  acceptance/submit hint uses active keybindings. Suggestions do not complete
+  partially typed input in this initial version.
+- Errors, aborts, incomplete output, queued work and non-TUI modes do not generate
+  suggestions. No suggestion is a valid result, especially for finished tasks,
+  explicit stops or unanswered user choices.
+- Another custom editor is not overwritten: the feature reports a conflict and
+  skips inference. On/off does not repeatedly replace the editor.
+
+After a user-initiated `/reload` or a new session, automatic TUI suggestions are
+**enabled by default**. The default model chain is `openai/gpt-6-luna` followed by
+`anthropic/claude-haiku-5-5` only for unavailable auth/model or provider/timeout
+failures. There is no fallback to the parent model or an unrelated provider.
+Malformed output is rejected, not retried until something appears.
+
+```text
+/prompt-suggestions              # Status, attempted models, latency and usage
+/prompt-suggestions off          # Disable for this session and cancel pending work
+/prompt-suggestions on           # Enable for future completed turns
+/prompt-suggestions model anthropic/claude-haiku-5-5  # Strict session model
+```
+
+These commands do not write settings or change the main agent's model. Optional
+persistent config is read from `<agentDir>/prompt-suggestions.json` (agent dir
+respects `PI_CODING_AGENT_DIR`), then trusted project `.pi/prompt-suggestions.json`.
+No configuration file is created automatically. Unknown/invalid fields disable
+inference with an error. Example:
+
+```json
+{
+  "enabled": true,
+  "models": ["openai/gpt-6-luna", "anthropic/claude-haiku-5-5"],
+  "timeoutMs": 30000,
+  "maxTokens": 1024,
+  "maxChars": 240,
+  "maxContextChars": 12000,
+  "maxMessages": 6
+}
+```
+
+The total timeout is shared across up to two exact configured models. A single
+entry is strict. Bounds: `timeoutMs` 100–60000, `maxTokens` 128–4096, `maxChars`
+20–500 Unicode code points, `maxContextChars` 500–24000, `maxMessages` 2–12.
+
+**Data boundary:** each request sends bounded recent active-branch user/assistant
+text to the configured provider through Pi's authentication/runtime. Defaults
+allow six messages and 12,000 characters, explicitly truncated. Thinking, images,
+raw tool arguments/results, system/global instructions, other branches, and
+unrelated files are not included. Conversation text already present in a user or
+assistant message can contain sensitive material; these bounds are not a secret
+redactor. Disable the feature for conversations you do not want sent to the
+configured providers. No production transcript/suggestion files or parent-context
+entries are written; credentials are never copied. Status usage is this extension's
+in-memory provider-reported total, not the native main-agent total; missing usage
+is unknown. Error diagnostics do not echo raw provider bodies.
+
+Ghost text is advice, not authorization or proof of completion. Model quality and
+latency can vary. See the [verification record](docs/spikes/2026-10-12-next-prompt-suggestions-verification.md)
+for tested builds, synthetic live results, and limits. Disable through the session command or ordinary Pi resource selection;
+`/reload` refreshes resource discovery. The current user's TUI is never reloaded
+by verification scripts.
+
+An explicit synthetic-only live evaluation is available (not part of offline
+`npm test`): `node tests/prompt-suggestions-live.mjs --run`. It makes six short
+calls per default model and stores synthetic evidence under ignored `artifacts/`.
+Run it only when live calls are authorized.
 
 ## Adding resources
 

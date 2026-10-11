@@ -5,12 +5,13 @@
   "type": "module",
   "description": "Personal extensions, skills, prompts, and themes for Pi",
   "scripts": {
-    "test": "node --test tests/plan-mode.test.mjs tests/tui-check.test.mjs tests/pi-web.test.mjs tests/computer-use.test.mjs tests/subagent.test.mjs tests/subagent-runner.test.mjs tests/ask-user.test.mjs tests/explain-with-visuals.test.mjs",
+    "test": "node --test tests/plan-mode.test.mjs tests/tui-check.test.mjs tests/pi-web.test.mjs tests/computer-use.test.mjs tests/subagent.test.mjs tests/subagent-runner.test.mjs tests/ask-user.test.mjs tests/explain-with-visuals.test.mjs tests/prompt-suggestions.test.mjs tests/pi-sessions-lib.test.mjs tests/pi-session-find.test.mjs tests/pi-session-stats.test.mjs",
     "build:cua-helper": "swift build -c release --package-path native/cua-helper",
-    "test:integration": "node --test tests/plan-mode.integration.test.mjs tests/tui-check.integration.test.mjs tests/pi-web.integration.test.mjs tests/subagent.integration.test.mjs tests/subagent-tui.integration.test.mjs tests/ask-user.integration.test.mjs tests/explain-with-visuals.integration.test.mjs"
+    "test:integration": "node --test tests/plan-mode.integration.test.mjs tests/tui-check.integration.test.mjs tests/pi-web.integration.test.mjs tests/subagent.integration.test.mjs tests/subagent-tui.integration.test.mjs tests/ask-user.integration.test.mjs tests/explain-with-visuals.integration.test.mjs tests/prompt-suggestions.integration.test.mjs tests/prompt-suggestions-tui.integration.test.mjs"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-tui": "*"
   }
 }
