@@ -79,6 +79,8 @@ test("next submitted prompt clears the widget and summarizes again", async () =>
 		await p.runtime.session.prompt("Next request"); await p.runtime.session.agent.waitForIdle(); await drain();
 		assert.equal(p.calls.filter((c) => c.model === "luna").length, 2);
 		assert.match(JSON.stringify(p.calls.at(-1).context.messages), /previousSummary/);
+		const payload = JSON.parse(p.calls.at(-1).context.messages.at(-1).content[0].text);
+		assert.equal(payload.currentTurn.request, "Next request", "the recorded turn start limits the request");
 	} finally { await p.dispose(); }
 });
 test("fallback uses exact second model", async () => {

@@ -46,6 +46,7 @@ Project work is indexed in [the backlog](docs/backlog/) (`python3 scripts/backlo
 | `subagent/` | Extension | `subagent` tool: read-only `explorer` and `reviewer` child agents with fresh context (see [Subagents](#subagents)) |
 | `prompt-suggestions/` | Extension | Optional next-user prompt as ghost text; Tab accepts without submitting (see [Next-prompt suggestions](#next-prompt-suggestions)) |
 | `turn-summary/` | Extension | Three-line Done/Open/Next summary above the editor after each turn (see [Turn summaries](#turn-summaries)) |
+| `wrapup-audit/` | Extension | End-of-request check of declared doc/instruction obligations: rule misses steer once, model judgments are report only (see [Wrap-up audit](#wrap-up-audit)) |
 | `pi-perf-log/` | Extension | Per-turn timing (connect, TTFT, provider, tool span, overhead), TUI render frames, and process memory to `<agentDir>/perf/<sessionId>.jsonl`; no conversation content; `pi-perf-log.json` to disable ([schema](extensions/pi-perf-log/SCHEMA.md)) |
 | `review` | Prompt | `/review [target or focus]`: parallel reviewer subagents, verified and summarized; asks before fixing |
 | `explain-with-visuals` | Skill | Editorial visual explanations: offline HTML, layered prose, local browser QA and delivery |
@@ -488,6 +489,65 @@ See the [verification record](docs/spikes/2026-10-12-turn-summary-verification.m
 for tested behavior and synthetic live results. A synthetic-only live evaluation
 is available outside `npm test`: `node tests/turn-summary-live.mjs --run`; run it
 only when live calls are authorized.
+
+## Wrap-up audit
+
+`extensions/wrapup-audit/` checks, at the end of each request, whether files the
+agent changed with `write`/`edit` left declared project obligations unmet. It has
+no built-in rules; this repository declares its obligations in the tracked
+[`.pi/wrapup-audit.json`](.pi/wrapup-audit.json). It does not require
+`turn-summary`; both can be loaded together. Design:
+[wrap-up audit plan](docs/plans/2026-10-12-wrapup-audit.md).
+
+- **Rules (Lane A) steer once.** Before Pi settles a completed request, each
+  rule is checked against files changed during that request inside the project
+  root (Git top level). On a miss, a visible `[wrapup-audit]` message asks the
+  agent to fix items within the current request's scope and permissions, or to
+  report why not. This happens at most once per request; remaining misses are
+  only shown. No model call.
+- **Judgments (Lane B) are report only.** After settlement, a small model checks
+  declared judgment texts (for example: follow-ups registered, ADR for rule
+  changes, glossary). Results appear in the footer (`wrap-up: N to check`), one
+  warning, and `/wrapup-audit`. It never continues the agent or edits files.
+- Nothing runs for requests without file changes, aborted or failed runs, files
+  outside the project, or non-TUI modes. Bash-made changes are not tracked.
+  Already streamed text is not retracted. Results are in memory only.
+
+Rule types, with repository-relative regular expressions (`match`):
+
+| Type | Checked files | Passes when |
+|---|---|---|
+| `mention` | created this request | `file` contains `mustContain` (`$1` = first capture) |
+| `frontmatter` | created this request | frontmatter has all `keys` |
+| `amendment` | pre-existing, frontmatter `session` from another session | `## Amendments` has a `### <today>` entry |
+| `field-line` | changed, frontmatter `field` in `values` | a line starts with `linePrefix` |
+
+```text
+/wrapup-audit              # Findings, steering count, models, attempts, usage
+/wrapup-audit off|on       # Session only
+```
+
+Config: `<agentDir>/wrapup-audit.json`, then trusted project
+`.pi/wrapup-audit.json`; later files replace whole fields. Fields: `enabled`,
+`steer`, `judge` (booleans, default true), `models` (default
+`anthropic/claude-haiku-5-5` → `openai/gpt-6-luna`), `timeoutMs` 100–60000,
+`maxTokens` 128–4096, `maxContextChars` 1000–24000, `rules` (≤ 20), `judgments`
+(≤ 8 `{id, text}`, serialized within half of `maxContextChars`). Invalid fields
+disable the feature with an error. A `.pi/` containing only this file does not
+require project trust in Pi 1.1.0.
+
+**Data boundary (Lane B):** messages after the point where the request was
+submitted only: the request (with steering messages from that run), the final
+answer, the request's tool trace (tool name, success, `path` argument only),
+changed repository-relative paths, and the judgment texts. The whole serialized
+context is capped at `maxContextChars` (tool entries, then request/answer text,
+then changed paths are shortened; the judgment is skipped if it still does not
+fit). File contents, other tool arguments and results,
+thinking, and earlier turns are not sent. Not secret-redacted; set
+`"judge": false` to keep everything local. Judgments are advice and can be
+wrong; see the [verification record](docs/spikes/2026-10-12-wrapup-audit-verification.md).
+A synthetic-only live evaluation: `node tests/wrapup-audit-live.mjs --run`; run
+it only when live calls are authorized.
 
 ## Adding resources
 

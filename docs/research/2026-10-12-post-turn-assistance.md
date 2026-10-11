@@ -138,7 +138,8 @@ Luna/Haiku use through the plan flow, not the later audit/summary implementation
 
 - Summary context/placement and factuality checks are deferred to BL-9vg3.
 - Audit obligation sources, report-only versus automatic correction, and Jev
-  usefulness are deferred to BL-yun3.
+  usefulness are deferred to BL-yun3 (resolved by the
+  [wrap-up audit plan](../plans/2026-10-12-wrapup-audit.md)).
 - Prompt latency, abstention, public-editor compatibility and provider behavior
   require the local feature's offline/live checks rather than reference claims.
 
@@ -146,3 +147,14 @@ Luna/Haiku use through the plan flow, not the later audit/summary implementation
 
 Source URLs and the pinned suggestion commit are in frontmatter/table above.
 Local implementation scope: [next-prompt plan](../plans/2026-10-12-next-prompt-suggestions.md).
+
+## Amendments
+
+### 2026-10-12 — Link the BL-yun3 wrap-up audit decision
+- Change: Linked the open question on audit obligations, report-only versus
+  steering, and Jev to the [wrap-up audit plan](../plans/2026-10-12-wrapup-audit.md).
+- Reason: BL-yun3 chose a hybrid: deterministic rule misses steer once,
+  judgment obligations are reported only; Jev was not adopted.
+- Impact: The findings above are unchanged; the deferred question is answered
+  by the plan and its [verification](../spikes/2026-10-12-wrapup-audit-verification.md).
+- Evidence: Session `01a12bfa-f0ef-7178-96d0-29ead0487e69`.

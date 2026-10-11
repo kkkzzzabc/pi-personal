@@ -30,21 +30,33 @@ export interface SummaryContext {
 	previousSummary?: Summary & { note: string };
 }
 
-/** Returns undefined unless the branch ends in a completed assistant text response. */
-export function buildContext(branch: readonly any[], config: SummaryConfig, previous?: Summary): SummaryContext | undefined {
-	const messages = branch.filter((e) => e.type === "message").map((e) => e.message);
+/**
+ * Returns undefined unless the branch ends in a completed assistant text response.
+ * `startAfter` is the last message entry id before the turn's prompt (null at the session start);
+ * when it is unknown, the turn start is inferred from message roles.
+ */
+export function buildContext(branch: readonly any[], config: SummaryConfig, previous?: Summary, startAfter?: string | null): SummaryContext | undefined {
+	const entries = branch.filter((e) => e.type === "message");
+	const messages = entries.map((e) => e.message);
 	const last = messages.at(-1);
 	if (last?.role !== "assistant" || last.stopReason !== "stop" || !text(last.content).trim()) return undefined;
 	let start = -1;
-	for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === "user" && text(messages[i].content).trim()) { start = i; break; }
-	if (start < 0) return undefined;
-	// A steering message arrives mid-run after tool activity; keep the run's earlier part in this turn.
-	const midRun = (m: any) => m?.role === "toolResult" || (m?.role === "assistant" && m.stopReason === "toolUse");
-	while (midRun(messages[start - 1])) {
-		let earlier = -1;
-		for (let i = start - 1; i >= 0; i--) if (messages[i].role === "user" && text(messages[i].content).trim()) { earlier = i; break; }
-		if (earlier < 0) break;
-		start = earlier;
+	if (startAfter !== undefined) {
+		const at = startAfter === null ? -1 : entries.findIndex((e) => e.id === startAfter);
+		if (startAfter !== null && at < 0) return undefined; // The branch no longer contains the turn start.
+		start = messages.findIndex((m, i) => i > at && m.role === "user" && text(m.content).trim());
+		if (start < 0) return undefined;
+	} else {
+		for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === "user" && text(messages[i].content).trim()) { start = i; break; }
+		if (start < 0) return undefined;
+		// A steering message arrives mid-run after tool activity; keep the run's earlier part in this turn.
+		const midRun = (m: any) => m?.role === "toolResult" || (m?.role === "assistant" && m.stopReason === "toolUse");
+		while (midRun(messages[start - 1])) {
+			let earlier = -1;
+			for (let i = start - 1; i >= 0; i--) if (messages[i].role === "user" && text(messages[i].content).trim()) { earlier = i; break; }
+			if (earlier < 0) break;
+			start = earlier;
+		}
 	}
 	const turn = messages.slice(start);
 	const request = turn.filter((m) => m.role === "user").map((m) => text(m.content)).filter((t) => t.trim()).join("\n---\n");

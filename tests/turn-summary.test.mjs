@@ -71,6 +71,17 @@ test("a steering message mid-run stays in the same turn with its earlier tool fa
 	assert.deepEqual(c.currentTurn.tools.map((t) => [t.tool, t.ok]), [["bash", false], ["edit", true]]);
 	assert.match(c.currentTurn.request, /테스트를 고쳐주세요/); assert.match(c.currentTurn.request, /README도 같이/);
 });
+test("recorded turn start: excludes a previous run that ended on a tool result; keeps steering after an answer", () => {
+	const old = [user("이전 요청"), call("o1", "write", { path: "OLD_PATH" }), result("o1", true)];
+	const b = [...old, user("새 요청"), reply("완료")];
+	const c = buildContext(b, conf(), undefined, old.at(-1).id);
+	assert.equal(c.currentTurn.request, "새 요청"); assert.deepEqual(c.currentTurn.tools, []); assert.doesNotMatch(JSON.stringify(c.currentTurn), /OLD_PATH/);
+	assert.match(buildContext(b, conf()).currentTurn.request, /이전 요청/, "role inference alone would merge the previous run");
+	const s = [user("원래 요청"), call("c1", "edit", { path: "a.md" }), result("c1", true), reply("완료"), user("README도"), reply("확인")];
+	const t = buildContext(s, conf(), undefined, null);
+	assert.equal(t.currentTurn.request, "원래 요청\n---\nREADME도"); assert.deepEqual(t.currentTurn.tools.map((x) => x.path), ["a.md"]);
+	assert.equal(buildContext(b, conf(), undefined, "not-on-branch"), undefined);
+});
 test("previous summary is labeled unverified", () => {
 	const c = buildContext(branch(), conf(), { done: "OLD", open: null, next: null });
 	assert.equal(c.previousSummary.done, "OLD"); assert.match(c.previousSummary.note, /Unverified/);

@@ -144,3 +144,19 @@ the agent's offer or add an unrequested suggestion; residual risk of overstated
 completion remains outside the tested cases; samples are small and synthetic;
 hardware IME and every third-party widget combination were not tested.
 No global configuration was changed and no commit was made.
+
+## Amendments
+
+### 2026-10-12 — Turn start recorded at prompt submission
+- Change: The turn now starts after the last message entry recorded when an idle
+  prompt is submitted, instead of being inferred from message roles. Role
+  inference remains only as a fallback when no start was recorded.
+- Reason: A wrap-up audit review found that role inference merges the previous
+  run when it ended on a tool result (for example `terminate: true` after a
+  dismissed plan), and splits a turn when a steering message follows a
+  completed answer. This feature used the same inference.
+- Impact: Summaries no longer include an earlier run's request or tool trace;
+  steering after a completed answer keeps the original request. One unit and one
+  host assertion were added; earlier results are otherwise unchanged.
+- Evidence: Session `01a12bfa-f0ef-7178-96d0-29ead0487e69`;
+  [wrap-up audit verification](2026-10-12-wrapup-audit-verification.md).

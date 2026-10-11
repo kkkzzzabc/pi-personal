@@ -18,6 +18,8 @@ export function createTurnSummaryExtension(deps: Dependencies) {
 		// In memory only: the last displayed summary and where it was produced.
 		let previous: { session: string; leaf: string | null; summary: Summary } | undefined;
 		let warned = ""; let shown = false;
+		// Last message entry before the current turn's prompt; recorded when an idle prompt starts the turn.
+		let startAfter: string | null | undefined;
 		const tui = () => !!ctx && ctx.mode === "tui";
 		// Model, thinking-level, label, and name entries move the raw leaf; only conversation messages define the turn.
 		const messageLeaf = () => { const b = ctx!.sessionManager.getBranch(); for (let i = b.length - 1; i >= 0; i--) if (b[i].type === "message") return b[i].id; return null; };
@@ -50,7 +52,7 @@ export function createTurnSummaryExtension(deps: Dependencies) {
 		};
 		pi.on("session_start", (_event, context) => {
 			controller.invalidate(); controller = new SummaryController();
-			ctx = context; identity = undefined; previous = undefined; warned = ""; shown = false;
+			ctx = context; identity = undefined; previous = undefined; warned = ""; shown = false; startAfter = undefined;
 			const loaded = (deps.load ?? loadConfig)(deps.agentDir(), ctx.cwd, ctx.isProjectTrusted()); config = loaded.config; configError = loaded.error;
 			if (!tui()) return;
 			try { ctx.ui.setWidget(KEY, undefined); } catch { /* Fresh UI. */ }
@@ -64,13 +66,18 @@ export function createTurnSummaryExtension(deps: Dependencies) {
 			const branch = ctx.sessionManager.getBranch(); const session = ctx.sessionManager.getSessionId();
 			// The earlier summary is used only when produced on an ancestor of this leaf.
 			const ancestor = previous && previous.session === session && branch.some((e: any) => e.id === previous!.leaf) ? previous.summary : undefined;
-			const context_ = buildContext(branch, config, ancestor);
+			const context_ = buildContext(branch, config, ancestor, startAfter);
 			if (!context_) { clear(); return; }
 			identity = { session, leaf: messageLeaf() };
 			const registry = ctx.modelRegistry; const snapshot = { ...config, models: [...config.models] };
 			void controller.run((signal) => generateSummary(registry, context_, snapshot, signal, deps.lowestThinking), current, changed);
 		});
 		// A new turn or a different branch makes the displayed summary stale. Typing does not.
+		pi.on("input", (event, context) => {
+			if (event.streamingBehavior !== undefined) return;
+			try { const b = context.sessionManager.getBranch(); startAfter = null; for (let i = b.length - 1; i >= 0; i--) if (b[i].type === "message") { startAfter = b[i].id; break; } }
+			catch { startAfter = undefined; }
+		});
 		for (const event of ["input", "agent_start", "session_before_switch", "session_before_fork", "session_before_tree", "session_tree", "session_before_compact", "session_compact"] as const) {
 			pi.on(event, (_event: any, context: ExtensionContext) => { ctx = context; clear(); });
 		}

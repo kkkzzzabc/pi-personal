@@ -1,0 +1,80 @@
+{
+  "rules": [
+    {
+      "id": "readme-extension",
+      "type": "mention",
+      "match": "^extensions/([^/]+)/index\\.ts$",
+      "file": "README.md",
+      "mustContain": "`$1/`",
+      "message": "New extension: add a README Resources row and a usage section."
+    },
+    {
+      "id": "readme-extension-file",
+      "type": "mention",
+      "match": "^extensions/([^/]+)\\.ts$",
+      "file": "README.md",
+      "mustContain": "`$1.ts`",
+      "message": "New single-file extension: add a README Resources row."
+    },
+    {
+      "id": "readme-skill",
+      "type": "mention",
+      "match": "^skills/([^/]+)/SKILL\\.md$",
+      "file": "README.md",
+      "mustContain": "`$1`",
+      "message": "New skill: add a README Resources row."
+    },
+    {
+      "id": "readme-prompt",
+      "type": "mention",
+      "match": "^prompts/([^/]+)\\.md$",
+      "file": "README.md",
+      "mustContain": "`$1`",
+      "message": "New prompt: add a README Resources row."
+    },
+    {
+      "id": "record-frontmatter",
+      "type": "frontmatter",
+      "match": "^docs/(research|plans|spikes|adr)/[^/]+\\.md$",
+      "keys": ["title", "date", "session", "based_on"],
+      "message": "New record: frontmatter needs title, date, session, and based_on (docs/README.md, Records)."
+    },
+    {
+      "id": "record-amendment",
+      "type": "amendment",
+      "match": "^docs/(research|plans|spikes|adr)/[^/]+\\.md$",
+      "message": "Record from another session changed: add a dated entry under ## Amendments if facts, evidence, scope, conclusions, design, or the next action changed (typos, formatting, and link repairs need none)."
+    },
+    {
+      "id": "backlog-closure",
+      "type": "field-line",
+      "match": "^docs/backlog/[^/]+\\.md$",
+      "field": "status",
+      "values": ["done", "dropped"],
+      "linePrefix": "- Closure:",
+      "message": "Closed backlog item: add one '- Closure:' line with the result link or drop reason."
+    }
+  ],
+  "judgments": [
+    {
+      "id": "backlog-followups",
+      "text": "Work the final answer leaves open is either finished, asked about in one batched question, or registered as a candidate with a reason it cannot be done now (outside data or time, a blocker, or user deferral). Defects in the request's own work are not deferred."
+    },
+    {
+      "id": "replacement-links",
+      "text": "A record that replaces an earlier record cites it in based_on, and the earlier record received a follow-up or replacement link."
+    },
+    {
+      "id": "adr-for-rules",
+      "text": "A change to standing rules or constraints beyond one feature (for example AGENTS.md or docs/README.md) is recorded in an ADR under docs/adr/, not only in a plan."
+    },
+    {
+      "id": "glossary",
+      "text": "Project terms newly introduced or renamed in docs are added to docs/glossary.md (renamed terms kept as Deprecated)."
+    },
+    {
+      "id": "attribution",
+      "text": "Code adapted from a reference implementation or external package keeps applicable attribution and license notices."
+    }
+  ]
+}

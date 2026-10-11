@@ -67,7 +67,8 @@ This replaces the single-index layout of
   risk is out-of-scope actions under the relaxed rules (tracked as `BL-qsyq`).
 - Concurrent sessions touch separate item files; edits to the same item or to
   shared rule files can still collide.
-- Automatic wrap-up (`BL-yun3`) remains open. The workspace adopted a local Git
+- Automatic wrap-up (`BL-yun3`) remains open (resolved 2026-10-12; see
+  Amendments). The workspace adopted a local Git
   repository right after this change (`BL-df94`); a pre-change copy was kept
   outside the workspace for the migration itself.
 
@@ -94,3 +95,22 @@ This replaces the single-index layout of
   remains project-only. This record describes the original local-only layout.
 - Evidence: Session `01a12b40-319d-77e2-9d03-8e9041f86028`; the linked decision
   records content selection, deployment and offline verification.
+
+### 2026-10-12 — Automatic wrap-up implemented
+- Change: Linked the [wrap-up audit plan](../plans/2026-10-12-wrapup-audit.md)
+  that resolves the open `BL-yun3` consequence.
+- Reason: A hybrid audit now checks declared document obligations at the end of
+  each request: rule misses steer once, model judgments are report only.
+- Impact: The lean rules themselves are unchanged by this entry; the audit is an
+  independent extension configured by the tracked `.pi/wrapup-audit.json`.
+- Evidence: Session `01a12bfa-f0ef-7178-96d0-29ead0487e69`;
+  [verification record](../spikes/2026-10-12-wrapup-audit-verification.md).
+
+### 2026-10-12 — Candidate registration narrowed
+- Change: "Follow-ups are registered as candidates without asking" is now limited
+  by [ADR 0005](0005-finish-in-session-work-before-registering-candidates.md):
+  in-goal work is finished, approvals are batched into one question, and only
+  data/time-dependent, blocked, or user-deferred work becomes a candidate.
+- Reason: Registration had become the default exit for finishable work.
+- Impact: Candidates still need no question; finishable work no longer becomes one.
+- Evidence: Session `01a12bfa-f0ef-7178-96d0-29ead0487e69`.
