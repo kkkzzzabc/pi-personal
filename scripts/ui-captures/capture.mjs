@@ -11,13 +11,9 @@ import { childTask, fixtureApp, fixturePng, form, scenario, settings, subagentCo
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const harness = join(root, "skills/tui-check/scripts");
 const fixtures = join(root, "scripts/ui-captures/fixtures");
-export const matrix = {
- baseline: ["idle"],
- "ask-user": ["single-choice", "multi-choice", "text-editor", "alternative-editor", "comment-editor", "review", "partial-review", "submitted-collapsed", "submitted-expanded", "submitted-expanded-top", "discussion", "cancelled", "narrow"],
- "plan-mode": ["enter-confirmation", "active-status", "approval", "feedback-editor", "approved", "narrow"],
- subagent: ["single-running", "parallel-running", "completed-collapsed", "completed-expanded", "mixed-results", "fallback", "aborted", "review-partial", "narrow"],
- "computer-use": ["approval", "state-collapsed", "state-expanded", "rejected", "permissions-error", "narrow"],
-};
+import { matrix, legacyMatrix, supplementalMatrix, manifestGroups, assertAction } from "./scope.mjs";
+import { captureSupplemental } from "./supplemental.mjs";
+export { matrix } from "./scope.mjs";
 export function pngDimensions(buffer) {
  assert.equal(buffer.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", "PNG signature");
  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
@@ -47,13 +43,14 @@ function provenance(bin) {
 }
 export function buildIndex(manifest) {
  const disclaimer = "Actual Pi TUI; offline fixture data. No live models or real macOS app contents. Dark theme, fullscreen mode; 120×40 baseline and 80×30 narrow. Screenshots are renderer-backed, not photographs of the user's terminal.";
- const sections = Object.keys(matrix).map((group) => {
+ const groups = manifestGroups(manifest);
+ const sections = groups.map((group) => {
   const entries = manifest.captures.filter((entry) => entry.extension === group);
   const cards = entries.map((entry) => `<article id="${escapeHtml(`${group}-${entry.state}`)}"><h3>${escapeHtml(entry.state)} <small>${entry.cols}×${entry.rows} · ${escapeHtml(entry.status)}</small></h3>${entry.png ? `<a href="${escapeHtml(entry.png)}"><img loading="lazy" src="${escapeHtml(entry.png)}" alt="${escapeHtml(`${group}: ${entry.state}`)}"></a>` : ""}<p>${escapeHtml(entry.note ?? entry.error ?? "Pending capture")}</p>${entry.text ? `<a href="${escapeHtml(entry.text)}">Text evidence</a>` : ""}<details><summary>Reproduction and evidence</summary><pre>${escapeHtml(JSON.stringify(entry, null, 2))}</pre></details></article>`).join("\n");
   return `<section id="${group}"><h2>${group}</h2>${cards}</section>`;
  }).join("\n");
- const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pi extension UI baseline</title><style>body{margin:0;background:#10151d;color:#e7edf6;font:16px system-ui}header,main{max-width:1260px;margin:auto;padding:24px}nav{display:flex;gap:20px;flex-wrap:wrap}a{color:#85c8ff}h2{margin-top:48px}article{background:#1b2330;padding:20px;margin:20px 0;border-radius:12px}img{width:100%;height:auto;display:block;margin:16px 0}small{font-weight:400;color:#aebbd0}pre{white-space:pre-wrap;overflow-wrap:anywhere}p{line-height:1.6}</style><header><h1>Pi extension UI baseline</h1><p>${disclaimer}</p><nav>${Object.keys(matrix).map((group) => `<a href="#${group}">${group}</a>`).join("")}</nav><p><a href="manifest.json">Manifest</a> · <a href="index.md">Markdown index</a></p></header><main>${sections}</main></html>`;
- const markdown = ["# Pi extension UI baseline", "", disclaimer, "", `Created: ${manifest.environment.createdAt}`, "", ...Object.keys(matrix).flatMap((group) => [
+ const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pi extension UI captures</title><style>body{margin:0;background:#10151d;color:#e7edf6;font:16px system-ui}header,main{max-width:1260px;margin:auto;padding:24px}nav{display:flex;gap:20px;flex-wrap:wrap}a{color:#85c8ff}h2{margin-top:48px}article{background:#1b2330;padding:20px;margin:20px 0;border-radius:12px}img{width:100%;height:auto;display:block;margin:16px 0}small{font-weight:400;color:#aebbd0}pre{white-space:pre-wrap;overflow-wrap:anywhere}p{line-height:1.6}</style><header><h1>Pi extension UI captures</h1><p>${disclaimer}</p><nav>${groups.map((group) => `<a href="#${group}">${group}</a>`).join("")}</nav><p><a href="manifest.json">Manifest</a> · <a href="index.md">Markdown index</a></p></header><main>${sections}</main></html>`;
+ const markdown = ["# Pi extension UI captures", "", disclaimer, "", `Created: ${manifest.environment.createdAt}`, "", ...groups.flatMap((group) => [
   `## ${group}`, "", ...manifest.captures.filter((entry) => entry.extension === group).flatMap((entry) => [
    `### ${entry.state} — ${entry.status} (${entry.cols}×${entry.rows})`, "", entry.png ? `![${entry.state}](${entry.png})` : "No image captured.", "", entry.note ?? entry.error ?? "Pending capture.", "", entry.text ? `[Text snapshot](${entry.text})` : "", "",
   ]),
@@ -61,23 +58,33 @@ export function buildIndex(manifest) {
  return { html, markdown };
 }
 
+export function buildLanding(galleries) {
+ return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pi UI capture sets</title><body><h1>Pi UI capture sets</h1><p>Separate historical capture sets; actual Pi TUI with offline synthetic data. No live-provider behavior is implied.</p><ul>${galleries.map((name) => `<li><a href="${escapeHtml(name)}/index.html">${escapeHtml(name)}</a></li>`).join("")}</ul></body></html>`;
+}
 export async function main(args) {
- if (args.includes("--help")) { console.log("Usage: node scripts/ui-captures/capture.mjs [--group baseline|ask-user|plan-mode|subagent|computer-use|all] [--case <run-label>] [--out artifacts/ui-captures/<id>]\nUse one group per invocation for bounded runs. All execution is offline. No installs or global settings changes.\nVerify: node scripts/ui-captures/verify.mjs <output-directory>"); return; }
+ if (args.includes("--help")) { console.log("Usage: node scripts/ui-captures/capture.mjs [--group baseline|ask-user|plan-mode|subagent|computer-use|prompt-suggestions|turn-summary|wrapup-audit|pi-perf-log|supplemental|all] [--case <run-label>] [--out artifacts/ui-captures/<id>]\nUse one group per invocation for bounded runs. All execution is offline. No installs or global settings changes.\nVerify: node scripts/ui-captures/verify.mjs <output-directory>"); return; }
  const get = (flag, fallback) => args.includes(flag) ? args[args.indexOf(flag) + 1] : fallback;
  const out = resolve(get("--out", join(root, "artifacts/ui-captures/2026-10-11-baseline")));
  assert.ok(out.startsWith(join(root, "artifacts/ui-captures") + "/"), "Output must stay in the workspace capture directory");
  const selected = get("--group", "all");
- assert.ok(selected === "all" || matrix[selected], `Unknown group: ${selected}`);
+ assert.ok(selected === "all" || selected === "supplemental" || Object.hasOwn(matrix, selected), `Unknown group: ${selected}`);
+ const groups = selected === "all" ? Object.keys(matrix) : selected === "supplemental" ? Object.keys(supplementalMatrix) : [selected];
  mkdirSync(out, { recursive: true });
  const bin = findAgentTty(); assert.ok(bin, "Existing agent-tty required; do not install automatically");
  const manifestPath = join(out, "manifest.json");
  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : {
-  environment: provenance(bin), runs: [], captures: Object.entries(matrix).flatMap(([extension, states]) => states.map((state) => ({ extension, state, cols: state === "narrow" ? 80 : 120, rows: state === "narrow" ? 30 : 40, status: "pending" }))),
+  schemaVersion: 2, scope: groups, environment: provenance(bin), runs: [], captures: [],
  };
- for (const [extension, states] of Object.entries(matrix)) for (const state of states) if (!manifest.captures.some((entry) => entry.extension === extension && entry.state === state)) manifest.captures.push({ extension, state, cols: 120, rows: 40, status: "pending" });
+ const declared = manifestGroups(manifest);
+ if (manifest.schemaVersion !== 2) assert.ok(groups.every((g) => Object.hasOwn(legacyMatrix, g)), "Use a new output directory for supplemental captures");
+ else manifest.scope = [...new Set([...declared, ...groups])];
+ for (const extension of manifestGroups(manifest)) for (const state of matrix[extension]) if (!manifest.captures.some((entry) => entry.extension === extension && entry.state === state)) manifest.captures.push({ extension, state, cols: state.startsWith("narrow") ? 80 : 120, rows: state.startsWith("narrow") ? 30 : 40, status: "pending" });
  function persist() {
   json(manifestPath, manifest);
   const index = buildIndex(manifest); writeFileSync(join(out, "index.html"), index.html); writeFileSync(join(out, "index.md"), index.markdown);
+  const parent = dirname(out);
+  const galleries = readdirSync(parent, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(parent, d.name, "manifest.json")) && existsSync(join(parent, d.name, "index.html"))).map((d) => d.name).sort();
+  writeFileSync(join(parent, "index.html"), buildLanding(galleries));
  }
  const doctor = agentTty(bin, join(out, "doctor-home"), ["doctor"]); json(join(out, "doctor.json"), doctor);
  assert.ok(doctor.ok && doctor.result.ok, "Screenshot prerequisites failed; do not install automatically");
@@ -86,19 +93,21 @@ export async function main(args) {
  let current; let actions = []; let runSerial = existsSync(join(out, "runs")) ? Math.max(0, ...readdirSync(join(out, "runs")).map((name) => Number.parseInt(name, 10) || 0)) : 0;
  const act = (args) => {
   actions.push(args); const result = agentTty(bin, current.ttyHome, args);
-  assert.ok(result.ok, JSON.stringify(result)); return result.result;
+  return assertAction(result, args);
  };
  const keys = (...names) => act(["send-keys", current.sessionId, ...names]);
  const type = (text) => act(["type", current.sessionId, text]);
  const wait = (text) => act(["wait", current.sessionId, "--text", text, "--timeout", "30000"]);
  const stable = () => act(["wait", current.sessionId, "--screen-stable-ms", "350", "--timeout", "10000"]);
  const prompt = (text = "Show the next offline UI fixture.") => { type(text); keys("Enter"); };
- function capture(group, state, expected, note = "Actual production extension with offline fixture data.") {
+ function capture(group, state, expected, note = "Actual production extension with offline fixture data.", absent = []) {
   const entry = manifest.captures.find((item) => item.extension === group && item.state === state);
   assert.ok(entry, `${group}/${state} exists in matrix`);
+  entry.status = "pending"; delete entry.error;
   stable();
   const text = String(act(["snapshot", current.sessionId, "--format", "text"]).text);
   for (const token of expected) assert.ok(text.includes(token), `Missing ${JSON.stringify(token)} in ${group}/${state}:\n${text}`);
+  for (const token of absent) assert.ok(!text.includes(token), `Unexpected ${JSON.stringify(token)} in ${group}/${state}`);
   actions.push(["screenshot-rpc", current.sessionId, "reference-dark", "60s timeout", "hidden cursor"]);
   const shot = JSON.parse(command(process.execPath, [join(root, "scripts/ui-captures/screenshot.mjs"), bin, current.ttyHome, current.sessionId]));
   json(join(current.runDir, `screenshot-${state}.json`), shot);
@@ -108,10 +117,10 @@ export async function main(args) {
   const stem = `${state}-${current.cols}x${current.rows}`;
   const png = join(targetDir, `${stem}.png`); copyFileSync(path, png);
   const textPath = join(targetDir, `${stem}.txt`); writeFileSync(textPath, text);
-  Object.assign(entry, { status: "captured", png: relative(out, png), text: relative(out, textPath), pixels: pngDimensions(readFileSync(png)), cols: current.cols, rows: current.rows, run: relative(out, current.runDir), theme: settings.theme, terminalMode: settings.tuiMode, note, expectedTokens: expected, screenshot: { capturedAtSeq: shot.capturedAtSeq, profile: shot.profileName, renderer: shot.rendererBackend, sha256: shot.sha256, profileHash: shot.renderProfileHash }, fixtureBoundary: group === "subagent" ? "Local ui-fixture provider; real extension runner" : group === "computer-use" ? "Fake JSON-lines helper; real approval, formatting, and host renderer" : "Scripted parent provider; real extension UI", actions: [...actions], source: group === "baseline" ? null : `extensions/${group}/index.ts` });
+  Object.assign(entry, { status: "captured", png: relative(out, png), text: relative(out, textPath), pixels: pngDimensions(readFileSync(png)), cols: current.cols, rows: current.rows, run: relative(out, current.runDir), theme: settings.theme, terminalMode: settings.tuiMode, note, expectedTokens: expected, absentTokens: absent, fixtureMode: current.captureFixture.mode, screenshot: { capturedAtSeq: shot.capturedAtSeq, profile: shot.profileName, renderer: shot.rendererBackend, sha256: shot.sha256, profileHash: shot.renderProfileHash }, fixtureBoundary: group === "subagent" ? "Local ui-fixture provider; real extension runner" : group === "computer-use" ? "Fake JSON-lines helper; real approval, formatting, and host renderer" : "Scripted parent provider; real extension UI", actions: [...actions], source: group === "baseline" ? null : `extensions/${group}/index.ts` });
   persist(); console.log(`Captured ${group}/${state}`);
  }
- async function run(group, label, responses, callback, { mode = "state", config, narrow = false } = {}) {
+ async function run(group, label, responses, callback, { mode = "state", config, narrow = false, extensions = [], agentFiles = {}, prepare } = {}) {
   if (get("--case", null) && label !== get("--case", null)) return;
   const runDir = join(out, "runs", `${String(++runSerial).padStart(2, "0")}-${group}-${label}`);
   mkdirSync(runDir, { recursive: true });
@@ -126,7 +135,11 @@ export async function main(args) {
    json(join(runDir, "subagent.json"), config ?? subagentConfig); argv.push("--agent-file", `subagent.json=${join(runDir, "subagent.json")}`, "--extension", join(fixtures, "subagent-provider.ts"));
    const fixtureDir = join(runDir, "fixture"); mkdirSync(fixtureDir); writeFileSync(join(fixtureDir, "README.md"), "Offline UI reference fixture. No actual repository review.\n"); argv.push("--fixture", fixtureDir);
   }
-  const env = { ...process.env, UI_CAPTURE_MODE: mode, UI_CAPTURE_PROVIDER_LOG: join(runDir, "provider-calls.jsonl"), UI_CAPTURE_HELPER_LOG: join(runDir, "helper-calls.jsonl"), PI_CUA_HELPER: join(fixtures, "computer-helper.mjs") };
+  for (const extension of extensions) argv.push("--extension", join(root, extension));
+  const prepared = prepare?.(runDir) ?? {};
+  for (const [name, value] of Object.entries({ ...agentFiles, ...prepared.agentFiles })) { json(join(runDir, name), value); argv.push("--agent-file", `${name}=${join(runDir, name)}`); }
+  if (prepared.fixture) argv.push("--fixture", prepared.fixture);
+  const env = { ...process.env, ...prepared.env, UI_CAPTURE_MODE: mode, UI_CAPTURE_PROVIDER_LOG: join(runDir, "provider-calls.jsonl"), UI_CAPTURE_HELPER_LOG: join(runDir, "helper-calls.jsonl"), PI_CUA_HELPER: join(fixtures, "computer-helper.mjs") };
   actions = []; current = undefined;
   try {
    const started = spawnSync(process.execPath, argv, { cwd: root, env, encoding: "utf8", timeout: 100_000 });
@@ -143,7 +156,12 @@ export async function main(args) {
    }
    manifest.runs.push({ group, label, path: relative(out, runDir), status: current ? "running" : "startup-failed" }); persist();
    assert.ok(current?.ok, started.stdout + started.stderr);
+   current.captureFixture = { mode, gitCeiling: prepared.env?.GIT_CEILING_DIRECTORIES ?? null, providerLog: env.UI_CAPTURE_PROVIDER_LOG };
+   json(join(runDir, "run.json"), current);
    await callback();
+  } catch (error) {
+   if (current?.ok) { try { writeFileSync(join(runDir, "failure-screen.txt"), String(agentTty(bin, current.ttyHome, ["snapshot", current.sessionId, "--format", "text"]).result?.text)); } catch { /* Preserve the original failure. */ } }
+   throw error;
   } finally {
    if (current) {
     writeFileSync(join(current.workDir, "release-children"), "release\n");
@@ -157,10 +175,15 @@ export async function main(args) {
   }
  }
 
- const groups = selected === "all" ? Object.keys(matrix) : [selected];
+ const api = { run, capture, prompt, keys, type, wait, stable, act, current: () => current, root };
  for (const entry of manifest.captures.filter((entry) => groups.includes(entry.extension) && entry.status === "failed")) { entry.status = "pending"; delete entry.error; }
+ let failedInvocations = 0;
+ manifest.invocations ??= [];
  for (const group of groups) {
+  const invocation = { group, case: get("--case", null), startedAt: new Date().toISOString(), status: "running" };
+  manifest.invocations.push(invocation);
   try {
+   if (Object.hasOwn(supplementalMatrix, group)) await captureSupplemental(group, api);
    if (group === "baseline") await run(group, "idle", [{ text: "OFFLINE-IDLE" }], () => capture(group, "idle", ["faux-1"], "Shared idle screen; built-in dark theme and fullscreen mode."));
    if (group === "ask-user") {
     await run(group, "form", [toolResponse("ask_user", form), { text: "ASK-SUBMITTED-DONE" }], () => {
@@ -222,13 +245,15 @@ export async function main(args) {
     await run(group, "rejected", [toolResponse("computer_get_app_state", args), { text: "COMPUTER-REJECTED-DONE" }], () => { prompt(); wait("Allow computer use?"); keys("Escape"); wait("COMPUTER-REJECTED-DONE"); capture(group, "rejected", ["did not allow", fixtureApp.name]); });
     await run(group, "permissions", [toolResponse("computer_get_app_state", args), { text: "COMPUTER-PERMISSIONS-DONE" }], () => { prompt(); wait("Allow computer use?"); keys("Enter"); wait("COMPUTER-PERMISSIONS-DONE"); capture(group, "permissions-error", ["Accessibility permission", "Privacy & Security"], "Synthetic helper permissions error; no actual permission request or settings change."); }, { mode: "permissions" });
    }
+   invocation.status = "completed";
   } catch (error) {
+   failedInvocations++; invocation.status = "failed";
    console.error(`${group}: ${error.stack}`);
    for (const entry of manifest.captures.filter((entry) => entry.extension === group && entry.status === "pending")) Object.assign(entry, { status: "failed", error: error.message });
    persist();
   }
  }
  persist(); console.log(JSON.stringify({ out, captured: manifest.captures.filter((entry) => entry.status === "captured").length, failed: manifest.captures.filter((entry) => entry.status === "failed").length, pending: manifest.captures.filter((entry) => entry.status === "pending").length }));
- if (manifest.captures.some((entry) => groups.includes(entry.extension) && entry.status === "failed")) process.exitCode = 1;
+ if (failedInvocations || manifest.captures.some((entry) => groups.includes(entry.extension) && entry.status === "failed")) process.exitCode = 1;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main(process.argv.slice(2));

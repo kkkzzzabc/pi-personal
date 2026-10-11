@@ -98,3 +98,11 @@ Unfinished follow-ups are registered as candidates, not approved UI changes:
 
 - [BL-yz3u](../backlog/BL-yz3u-improve-narrow-screen-keyboard-guidance-and.md): improve narrow keyboard guidance and verbose decision-result presentation.
 - [BL-pvue](../backlog/BL-pvue-harden-ui-capture-tooling-against-screenshot.md): replace the screenshot-internal adapter when a supported timeout path exists and harden abrupt-interruption cleanup.
+
+## Amendments
+
+### 2026-10-12 — Supplemental captures for the remaining four extensions
+- Change: Added a separate [supplemental verification record](2026-10-12-extension-ui-capture-supplemental.md) and [local landing index](../../artifacts/ui-captures/index.html) linking this preserved baseline and the new gallery.
+- Reason: The user requested PNG coverage for prompt-suggestions, turn-summary, wrapup-audit, and pi-perf-log, which were outside this original baseline.
+- Impact: The original 35 images and their provenance remain unchanged; 35 new offline images cover the other four extensions. Updated tooling still verifies legacy manifests against the original fixed matrix.
+- Evidence: Session `01a12c4f-008e-7447-adf5-1a8eec294d56`; supplemental gallery and verification linked above.

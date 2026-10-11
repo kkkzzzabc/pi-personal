@@ -1,20 +1,82 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { inflateSync } from "node:zlib";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { matrix, pngDimensions, buildIndex } from "../scripts/ui-captures/capture.mjs";
+import { matrix, pngDimensions, buildIndex, buildLanding } from "../scripts/ui-captures/capture.mjs";
 import { fixturePng, helperReply, fixtureApp, form, scenario, settings, subagentConfig } from "../scripts/ui-captures/fixtures/data.mjs";
 import { normalizeForm } from "../extensions/ask-user/schema.ts";
 import { parseScenario } from "../skills/tui-check/scripts/lib.ts";
 import { HelperClient } from "../extensions/computer-use/helper-client.ts";
 
-test("capture matrix includes all four extensions, baseline, narrow states, and expanded supplementary frame", () => {
- assert.deepEqual(Object.keys(matrix), ["baseline", "ask-user", "plan-mode", "subagent", "computer-use"]);
- assert.equal(Object.values(matrix).flat().length, 35);
- for (const [extension, states] of Object.entries(matrix)) { assert.equal(states.length, new Set(states).size); if (extension !== "baseline") assert.ok(states.includes("narrow")); }
+import { legacyMatrix, supplementalMatrix, scopeKeys, validateCaptureScope, assertAction } from "../scripts/ui-captures/scope.mjs";
+import { nestedModels, nestedResponse, waitForRelease } from "../scripts/ui-captures/fixtures/nested-data.mjs";
+import { verifyEvidence } from "../scripts/ui-captures/verify.mjs";
+
+test("capture matrices preserve 35 legacy states and add four supplemental groups", () => {
+ assert.deepEqual(Object.keys(legacyMatrix), ["baseline", "ask-user", "plan-mode", "subagent", "computer-use"]);
+ assert.equal(Object.values(legacyMatrix).flat().length, 35);
+ assert.deepEqual(Object.keys(supplementalMatrix), ["prompt-suggestions", "turn-summary", "wrapup-audit", "pi-perf-log"]);
+ for (const [extension, states] of Object.entries(matrix)) { assert.equal(states.length, new Set(states).size); if (!["baseline", "pi-perf-log"].includes(extension)) assert.ok(states.includes("narrow")); }
+});
+test("scopes enforce complete known unique states and preserve legacy manifests", () => {
+ const captures = (groups, source = matrix) => scopeKeys(groups, source).map((key) => { const [extension, state] = key.split("/"); return { extension, state }; });
+ assert.deepEqual(validateCaptureScope({ captures: captures(Object.keys(legacyMatrix), legacyMatrix) }), Object.keys(legacyMatrix));
+ const manifest = { schemaVersion: 2, scope: ["turn-summary"], captures: captures(["turn-summary"]) };
+ assert.deepEqual(validateCaptureScope(manifest), ["turn-summary"]);
+ for (const value of [{ ...manifest, schemaVersion: 3 }, { ...manifest, scope: [] }, { ...manifest, scope: ["bogus"] }, { ...manifest, scope: ["turn-summary", "turn-summary"] }, { ...manifest, captures: manifest.captures.slice(1) }, { ...manifest, captures: [...manifest.captures, manifest.captures[0]] }, { ...manifest, captures: [...manifest.captures, { extension: "turn-summary", state: "bogus" }] }]) assert.throws(() => validateCaptureScope(value));
+});
+test("timed-out waits fail even when agent-tty reports ok", () => {
+ assert.throws(() => assertAction({ ok: true, result: { timedOut: true } }, ["wait", "fixture"]), /Wait timed out/);
+ assert.deepEqual(assertAction({ ok: true, result: { timedOut: false } }, ["wait"]), { timedOut: false });
+ assert.throws(() => assertAction({ ok: false }, ["snapshot"]));
+});
+test("nested response fixtures route contracts, malformed output, and fallback deterministically", () => {
+ assert.equal(nestedModels.length, 6);
+ assert.equal(JSON.parse(nestedResponse("suggestion-primary", "state", 1).text).suggestion, "검증 결과를 요약해주세요.");
+ assert.equal(JSON.parse(nestedResponse("summary-primary", "partial", 2).text).summary.open, null);
+ assert.match(nestedResponse("summary-primary", "state", 2).text, /SUMMARY-2/);
+ assert.deepEqual(JSON.parse(nestedResponse("audit-primary", "clean", 1).text), { findings: [] });
+ assert.equal(nestedResponse("summary-primary", "invalid-output", 1).text, "not-json");
+ assert.equal(nestedResponse("summary-primary", "fallback", 1).stopReason, "error");
+ assert.ok(JSON.parse(nestedResponse("summary-backup", "fallback", 1).text).summary);
+ assert.throws(() => nestedResponse("live/model", "state", 1));
+});
+test("nested gate handles release, cancellation, and bounded failure without leaking watchers", async () => {
+ const dir = mkdtempSync(join(tmpdir(), "ui-capture-gate-")); const gate = join(dir, "release");
+ try {
+  const abort = new AbortController(); const pending = waitForRelease(gate, abort.signal); abort.abort(); await pending;
+  const released = waitForRelease(gate); writeFileSync(gate, "release"); await released; await waitForRelease(gate);
+  await assert.rejects(waitForRelease(join(dir, "missing"), undefined, 5), /timed out/);
+ } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+test("evidence verifier rejects escaping paths, missing cleanup, nonlocal providers and perf output", () => {
+ const dir = mkdtempSync(join(tmpdir(), "ui-capture-verifier-")); const run = join(dir, "runs", "01-fixture"); mkdirSync(run, { recursive: true });
+ const json = (p, v) => writeFileSync(p, JSON.stringify(v));
+ const png = fixturePng(); writeFileSync(join(dir, "idle.png"), png); writeFileSync(join(dir, "idle.txt"), "IDLE");
+ const entry = { extension: "baseline", state: "idle", status: "captured", png: "idle.png", text: "idle.txt", pixels: pngDimensions(png), screenshot: { sha256: createHash("sha256").update(png).digest("hex") }, expectedTokens: ["IDLE"], absentTokens: ["LIVE"], actions: [["snapshot"]], theme: "dark", terminalMode: "fullscreen", cols: 120, rows: 40, run: "runs/01-fixture" };
+ const manifest = { schemaVersion: 2, scope: ["baseline"], captures: [entry] };
+ const save = () => json(join(dir, "manifest.json"), manifest);
+ save(); writeFileSync(join(dir, "index.html"), '<a href="idle.png">PNG</a>');
+ json(join(run, "run.json"), { userAgentDir: false, mode: "faux" }); json(join(run, "finish.json"), { piExited: true, ttySessionDestroyed: true });
+ writeFileSync(join(run, "launch.sh"), "export PI_OFFLINE=1\npi --offline --no-mcp\n");
+ try {
+  assert.equal(verifyEvidence(dir).captures, 1);
+  manifest.invocations = [{ group: "baseline", status: "failed" }]; save(); assert.throws(() => verifyEvidence(dir), /Latest invocation/); manifest.invocations[0].status = "completed"; save();
+  entry.png = "../escape.png"; save(); assert.throws(() => verifyEvidence(dir), /inside/); entry.png = "idle.png";
+  entry.run = "../escape"; save(); assert.throws(() => verifyEvidence(dir), /inside/); entry.run = "runs/01-fixture"; save();
+  json(join(run, "finish.json"), { piExited: true, ttySessionDestroyed: false }); assert.throws(() => verifyEvidence(dir)); json(join(run, "finish.json"), { piExited: true, ttySessionDestroyed: true });
+  writeFileSync(join(run, "provider-calls.jsonl"), JSON.stringify({ model: "openai/live" }) + "\n"); assert.throws(() => verifyEvidence(dir), /allowlist/); writeFileSync(join(run, "provider-calls.jsonl"), JSON.stringify({ model: "ui-nested/summary-primary" }) + "\n");
+  const renamed = join(dir, "runs", "02-pi-perf-log-write-error"); renameSync(run, renamed); entry.run = "runs/02-pi-perf-log-write-error"; save(); mkdirSync(join(renamed, "agent")); json(join(renamed, "agent", "pi-perf-log.json"), { dir: "/outside" }); assert.throws(() => verifyEvidence(dir), /Run-local perf/);
+ } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+test("scoped gallery and landing index remain offline and label separate histories", () => {
+ const index = buildIndex({ schemaVersion: 2, scope: ["pi-perf-log"], environment: { createdAt: "fixture" }, captures: [] });
+ assert.match(index.html, /id="pi-perf-log"/); assert.doesNotMatch(index.html, /id="ask-user"/);
+ const landing = buildLanding(["historical", "supplemental"]); assert.match(landing, /historical\/index.html/); assert.match(landing, /supplemental\/index.html/); assert.doesNotMatch(landing, /<script|https?:/);
 });
 test("fixture scenarios and forms match existing public validation", () => {
  assert.equal(normalizeForm(form).questions.length, 3);

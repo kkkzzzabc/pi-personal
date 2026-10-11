@@ -3,26 +3,30 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { pathToFileURL } from "node:url";
-import { matrix, pngDimensions } from "./capture.mjs";
+import { pngDimensions } from "./capture.mjs";
+import { validateCaptureScope } from "./scope.mjs";
+import { nestedModels } from "./fixtures/nested-data.mjs";
 import { fixtureApp } from "./fixtures/data.mjs";
 
 export function verifyEvidence(directory) {
  const out = resolve(directory);
  const manifest = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"));
- const expected = Object.entries(matrix).flatMap(([extension, states]) => states.map((state) => `${extension}/${state}`));
- assert.deepEqual(manifest.captures.map((entry) => `${entry.extension}/${entry.state}`).sort(), expected.sort());
+ validateCaptureScope(manifest);
+ const latest = new Map((manifest.invocations ?? []).map((i) => [i.group, i]));
+ for (const invocation of latest.values()) assert.equal(invocation.status, "completed", `Latest invocation: ${invocation.group}`);
+ const inside = (path) => { assert.equal(typeof path, "string"); const value = resolve(out, path); assert.ok(value.startsWith(out + "/"), "Evidence stays inside output directory"); return value; };
  const dimensions = new Map();
  for (const entry of manifest.captures) {
   assert.equal(entry.status, "captured", `${entry.extension}/${entry.state}`);
-  const png = resolve(out, entry.png); const textPath = resolve(out, entry.text);
-  assert.ok(png.startsWith(out + "/") && textPath.startsWith(out + "/"), "Evidence stays inside output directory");
+  const png = inside(entry.png); const textPath = inside(entry.text);
   const bytes = readFileSync(png); const pixels = pngDimensions(bytes); assert.deepEqual(pixels, entry.pixels);
   assert.equal(createHash("sha256").update(bytes).digest("hex"), entry.screenshot.sha256, "PNG matches renderer metadata");
   const text = readFileSync(textPath, "utf8"); for (const token of entry.expectedTokens) assert.ok(text.includes(token), token);
+  for (const token of entry.absentTokens ?? []) assert.ok(!text.includes(token), `Absent: ${token}`);
   assert.ok(entry.actions.length > 0); assert.equal(entry.theme, "dark"); assert.equal(entry.terminalMode, "fullscreen");
   const key = `${entry.cols}x${entry.rows}`;
   if (dimensions.has(key)) assert.deepEqual(pixels, dimensions.get(key)); else dimensions.set(key, pixels);
-  const finish = JSON.parse(readFileSync(join(out, entry.run, "finish.json"), "utf8"));
+  const finish = JSON.parse(readFileSync(join(inside(entry.run), "finish.json"), "utf8"));
   assert.ok(finish.piExited && finish.ttySessionDestroyed);
  }
  const html = readFileSync(join(out, "index.html"), "utf8");
@@ -45,7 +49,20 @@ export function verifyEvidence(directory) {
   }
   const provider = join(dir, "provider-calls.jsonl");
   if (existsSync(provider)) for (const line of readFileSync(provider, "utf8").trim().split("\n")) {
-   const call = JSON.parse(line); assert.match(call.model, /^ui-fixture\/(primary|backup|failure)$/); providerCalls++;
+   const call = JSON.parse(line);
+   assert.ok(/^ui-fixture\/(primary|backup|failure)$/.test(call.model) || nestedModels.some((id) => call.model === `ui-nested/${id}`), "Offline fixture model allowlist"); providerCalls++;
+  }
+  if (name.includes("pi-perf-log")) {
+   const config = JSON.parse(readFileSync(join(dir, "agent", "pi-perf-log.json"), "utf8"));
+   if (typeof config.enabled !== "string") assert.ok(resolve(config.dir).startsWith(dir + "/"), "Run-local perf output");
+   if (name.endsWith("-normal")) {
+    const logs = readdirSync(join(dir, "perf")); assert.equal(logs.length, 1);
+    const records = readFileSync(join(dir, "perf", logs[0]), "utf8").trim().split("\n").map(JSON.parse);
+    assert.ok(records.some((r) => r.type === "session") && records.some((r) => r.type === "turn") && records.some((r) => r.type === "run"));
+    assert.ok(records.every((r) => `${r.sessionId}.jsonl` === logs[0]), "Log identity");
+    const sessions = readdirSync(run.sessionDir).filter((f) => f.endsWith(".jsonl"));
+    assert.ok(sessions.some((f) => JSON.parse(readFileSync(join(run.sessionDir, f), "utf8").split("\n")[0]).id === records[0].sessionId), "Actual Pi session identity");
+   }
   }
   const helper = join(dir, "helper-calls.jsonl");
   if (existsSync(helper)) for (const line of readFileSync(helper, "utf8").trim().split("\n")) {
