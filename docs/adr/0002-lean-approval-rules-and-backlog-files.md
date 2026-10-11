@@ -64,5 +64,6 @@ This replaces the single-index layout of
   risk is out-of-scope actions under the relaxed rules (tracked as `BL-qsyq`).
 - Concurrent sessions touch separate item files; edits to the same item or to
   shared rule files can still collide.
-- Automatic wrap-up (`BL-yun3`) and Git adoption (`BL-df94`) remain open. A
-  pre-change copy was kept outside the workspace for this migration only.
+- Automatic wrap-up (`BL-yun3`) remains open. The workspace adopted a local Git
+  repository right after this change (`BL-df94`); a pre-change copy was kept
+  outside the workspace for the migration itself.
