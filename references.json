@@ -1,0 +1,38 @@
+{
+  "$comment": "External reference repositories cloned into .references/<kind>/<owner>/<repo>. Fetch with: python3 scripts/fetch-references.py. Docs pin the exact commit they read; this file only lists what to fetch.",
+  "references": [
+    { "kind": "harnesses", "repo": "Aider-AI/aider" },
+    { "kind": "harnesses", "repo": "anthropics/claude-code" },
+    { "kind": "harnesses", "repo": "openai/codex" },
+    { "kind": "harnesses", "repo": "charmbracelet/crush" },
+    { "kind": "harnesses", "repo": "google-gemini/gemini-cli" },
+    { "kind": "harnesses", "repo": "aaif-goose/goose" },
+    { "kind": "harnesses", "repo": "MoonshotAI/kimi-code" },
+    { "kind": "harnesses", "repo": "mistralai/mistral-vibe" },
+    { "kind": "harnesses", "repo": "anomalyco/opencode" },
+    { "kind": "harnesses", "repo": "QwenLM/qwen-code" },
+
+    { "kind": "customizations", "repo": "garrytan/gstack" },
+    { "kind": "customizations", "repo": "cursor/plugins", "sparse": ["pstack"] },
+    { "kind": "customizations", "repo": "obra/superpowers" },
+    { "kind": "customizations", "repo": "addyosmani/agent-skills" },
+    { "kind": "customizations", "repo": "affaan-m/ECC" },
+    { "kind": "customizations", "repo": "EveryInc/compound-engineering-plugin" },
+    { "kind": "customizations", "repo": "SuperClaude-Org/SuperClaude_Framework" },
+    { "kind": "customizations", "repo": "github/spec-kit" },
+    { "kind": "customizations", "repo": "Fission-AI/OpenSpec" },
+    { "kind": "customizations", "repo": "gsd-build/get-shit-done" },
+    { "kind": "customizations", "repo": "bmad-code-org/BMAD-METHOD" },
+    { "kind": "customizations", "repo": "eyaltoledano/claude-task-master" },
+    { "kind": "customizations", "repo": "mattpocock/skills" },
+    { "kind": "customizations", "repo": "anthropics/skills" },
+    { "kind": "customizations", "repo": "wshobson/agents" },
+    { "kind": "customizations", "repo": "anthropics/claude-plugins-official" },
+
+    { "kind": "pi-packages", "repo": "nicobailon/pi-subagents" },
+    { "kind": "pi-packages", "repo": "edlsh/pi-ask-user" },
+    { "kind": "pi-packages", "repo": "FadhelHaidar/pi-ask-user" },
+    { "kind": "pi-packages", "repo": "jayshah5696/pi-agent-extensions", "sparse": ["extensions/ask-user", "tests/ask-user"] },
+    { "kind": "pi-packages", "repo": "mrclrchtr/supi", "sparse": ["packages/supi-ask-user"] }
+  ]
+}

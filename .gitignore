@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+.build/
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# External reference repositories
+/.references/
+
+# Python and Swift tooling
+__pycache__/
+*.pyc
+.swiftpm/
+
+# Logs
+*.log
