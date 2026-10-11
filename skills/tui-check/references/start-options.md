@@ -77,7 +77,14 @@ mode `userAgentDir` and `configChanges`.
 
 ## Locating agent-tty
 
-`TUI_CHECK_AGENT_TTY`, then `agent-tty` on `PATH`, then
-`~/.local/share/cli-display-tools/node_modules/.bin/agent-tty`. Versions
-other than 0.5.x are reported as `agentTty.supported: false`; check behavior
-before relying on them.
+`TUI_CHECK_AGENT_TTY`, then `agent-tty` on `PATH`. Install the official CLI
+with `npm install -g agent-tty@0.5.0` (Node `>=24 <27`). Versions other than
+0.5.x are reported as `agentTty.supported: false`; check behavior before
+relying on them.
+
+This workflow uses text snapshots and render-backed waits, not PNG or WebM.
+Without Chromium, the optional native `libghostty-vt` renderer must be available.
+`agent-tty doctor --json` should report `snapshot` and `wait` as available;
+its overall result may fail because browser and screenshot checks fail.
+The `ghostty-web` fallback and visual artifacts require Playwright Chromium.
+Do not automatically download browsers for text-only checks.

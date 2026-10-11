@@ -9,7 +9,7 @@ description: >
   actually received (system prompt, reminders, active tools). A real-model
   mode checks how an actual model reacts. Not for plain stdout checks or
   non-pi terminal apps.
-compatibility: pi 1.1.x, Node 22.18+ (native TypeScript), agent-tty 0.5.x (TUI_CHECK_AGENT_TTY, PATH, or ~/.local/share/cli-display-tools).
+compatibility: pi 1.1.x, Node >=24 <27, agent-tty 0.5.x (TUI_CHECK_AGENT_TTY or PATH); Chromium-free text checks require libghostty-vt.
 ---
 
 # tui-check
@@ -24,8 +24,20 @@ it and `$TTY` for the agent-tty binary reported in `run.json`.
 | Interactive pi behavior of a change (commands, keys, status, dialogs, restore) | this skill |
 | What the model received (system prompt, injected messages, tools) | this skill (model-input log) |
 | Logic covered by unit/integration tests | tests first; this skill for the interactive part |
-| Screen PNG evidence or replay of a finished recording | the `cli-display` skill (same agent-tty install) |
-| A terminal app other than pi | `cli-display` or agent-tty directly |
+| Screen PNG evidence or WebM video | agent-tty directly (requires Playwright Chromium) |
+| A terminal app other than pi | agent-tty directly |
+
+## Prerequisites
+
+Install the official CLI with `npm install -g agent-tty@0.5.0`. Scripts use
+`TUI_CHECK_AGENT_TTY` when set, otherwise `agent-tty` on `PATH`.
+Text snapshots and render-backed waits work without Chromium when the optional
+native `libghostty-vt` renderer is available. Check `agent-tty doctor --json`:
+`snapshot` and `wait` must be available. Browser/screenshot checks may fail in
+this text-only setup; PNG and WebM are optional and are not used by this workflow.
+If the native renderer is unavailable, the `ghostty-web` fallback needs Chromium.
+Do not install browsers automatically or force `AGENT_TTY_RENDERER=ghostty-web`
+for a Chromium-free run.
 
 ## Safety
 

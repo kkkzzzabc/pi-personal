@@ -22,7 +22,6 @@ import { parseScenario, shellQuote } from "./lib.ts";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 export const FAUX_MODEL = "faux/faux-1";
 export const REAL_DEFAULT_THINKING = "low";
-export const DEFAULT_AGENT_TTY = join(homedir(), ".local/share/cli-display-tools/node_modules/.bin/agent-tty");
 export const SUPPORTED_AGENT_TTY = "0.5.";
 /** Config files in the user's agent dir whose changes a real run reports. */
 export const FINGERPRINT_FILES = ["settings.json", "keybindings.json", "models.json", "trust.json"];
@@ -141,7 +140,7 @@ function findExecutable(name, extra = []) {
 
 export function findAgentTty() {
 	if (process.env.TUI_CHECK_AGENT_TTY) return process.env.TUI_CHECK_AGENT_TTY;
-	return findExecutable("agent-tty", [DEFAULT_AGENT_TTY]);
+	return findExecutable("agent-tty");
 }
 
 /** Run agent-tty with --json; returns the parsed envelope (never throws on command failure). */
@@ -176,7 +175,7 @@ export async function main(argv) {
 	const real = options.mode === "real";
 
 	const tty = findAgentTty();
-	if (!tty) fail("agent-tty not found (set TUI_CHECK_AGENT_TTY or install agent-tty 0.5.x)");
+	if (!tty) fail("agent-tty not found (set TUI_CHECK_AGENT_TTY or run npm install -g agent-tty@0.5.0)");
 	const version = agentTty(tty, tmpdir(), ["version"]);
 	const ttyVersion = version?.result?.cliVersion;
 	if (!version.ok) fail(`agent-tty version failed: ${version.error?.message}`);

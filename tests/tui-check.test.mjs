@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, test } from "node:test";
@@ -93,6 +94,36 @@ describe("message summaries", () => {
 	test("shellQuote", () => {
 		assert.equal(shellQuote("/a/b-c.ts"), "/a/b-c.ts");
 		assert.equal(shellQuote("it's x"), `'it'\\''s x'`);
+	});
+});
+
+describe("agent-tty discovery", () => {
+	const home = join(scratch, "discovery-home");
+	const binDir = join(scratch, "discovery-bin");
+	const pathBin = join(binDir, "agent-tty");
+	const oldBin = join(home, ".local/share/cli-display-tools/node_modules/.bin/agent-tty");
+	mkdirSync(binDir, { recursive: true });
+	mkdirSync(join(oldBin, ".."), { recursive: true });
+	for (const bin of [pathBin, oldBin]) {
+		writeFileSync(bin, "#!/bin/sh\nexit 0\n");
+		chmodSync(bin, 0o755);
+	}
+	const scriptUrl = new URL("../skills/tui-check/scripts/start.mjs", import.meta.url).href;
+	function discover(path, override = "") {
+		const result = spawnSync(process.execPath, ["--input-type=module", "-e",
+			`import { findAgentTty } from ${JSON.stringify(scriptUrl)}; console.log(JSON.stringify(findAgentTty() ?? null));`,
+		], { encoding: "utf8", env: { ...process.env, HOME: home, PATH: path, TUI_CHECK_AGENT_TTY: override } });
+		assert.equal(result.status, 0, result.stderr);
+		return JSON.parse(result.stdout);
+	}
+	test("explicit override takes precedence over PATH", () => {
+		assert.equal(discover(binDir, "/explicit/agent-tty"), "/explicit/agent-tty");
+	});
+	test("finds the official CLI on PATH", () => {
+		assert.equal(discover(binDir), pathBin);
+	});
+	test("does not fall back to the old install when PATH has no CLI", () => {
+		assert.equal(discover(""), null);
 	});
 });
 
