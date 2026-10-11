@@ -174,11 +174,18 @@ that only write caches/artifacts are allowed; formatters, codegen, commits,
 installs are not); do not delegate edits; the only writable file is the
 plan file; answer inquiries directly without a plan; for directives,
 explore → clarify (ask the user when trade-offs matter) → write the plan →
-`exit_plan_mode`; scale the plan (simple: changes + verification;
+`exit_plan_mode`; the plan covers the requested outcome end to end, including
+changes and verification, without narrowing it to a design or widening it
+beyond the request; scale the plan (simple: changes + verification;
 standard: objective, key files, steps, testing; complex: background,
 scope, solution, alternatives, phases, verification, rollback). Short
-reminder: two or three lines restating the rules and plan file path. All
-text in English.
+reminder: two or three lines restating the rules and plan file path.
+`enter_plan_mode` guidance: enter before non-trivial changes to files or
+system state; answer proposals, discussions and research scoping that change
+no files in the chat; do not re-enter to carry out a plan the user approved
+with `exit_plan_mode` that already covers the current work; plan again after
+a material change in scope or approach.
+All text in English.
 
 ## Phases
 
@@ -259,3 +266,20 @@ text in English.
 - Evidence: `extensions/plan-mode/{index,delivery,state,tools}.ts`,
   `tests/plan-mode{,.integration}.test.mjs`, and
   [the message-order experiment](../spikes/2026-10-11-custom-message-before-first-prompt.md).
+
+### 2026-10-11 — Reduce redundant planning rounds
+- Change: Plan-mode entry guidance now excludes no-file-change proposals and
+  discussions and re-entry for a plan approved with `exit_plan_mode` whose
+  scope and approach are unchanged; the enter
+  note scopes the plan to the requested outcome end to end.
+- Reason: A session review found plan mode used to plan a proposal, followed by
+  a second round to plan its implementation, in this repository and in
+  `personal/` (e.g. sessions `01a12b58-db93-72c0-b9e1-11e3e625b592`,
+  `01a12b28-32f7-7547-a484-43de317df55b`), costing extra user turns.
+- Impact: Design-only and research-only requests and re-planning after a
+  material change in scope or approach are unchanged. A proposal agreed only
+  in the chat is not an approved plan. The effect on real model behavior is
+  unverified; offline tests cover only the prompt contract.
+- Evidence: Session `01a12b62-009e-7178-96d0-29d3408ab23e` (analysis and a
+  two-model review); `extensions/plan-mode/prompts.ts`;
+  `tests/plan-mode.test.mjs` ("prompt contract").

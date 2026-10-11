@@ -32,7 +32,7 @@ Workflow:
 - If the user asks for a change (a directive):
   1. Explore the relevant code with read-only tools.
   2. Clarify with the user when requirements are ambiguous or a trade-off needs their decision.
-  3. Write the plan to the plan file.
+  3. Write the plan to the plan file. Cover the user's requested outcome end to end, including the changes and verification it needs. Do not narrow it to a design or proposal unless the user asked only for that, and do not expand it beyond the request.
   4. Summarize the plan in the chat (goal, main steps, verification), then call exit_plan_mode to ask the user to approve it. The approval prompt does not show the plan, so the summary is what the user reviews. Do not ask for approval in plain text.
 
 Plan structure, scaled to the task:
@@ -63,8 +63,11 @@ Plan mode has ended. The plan-mode restrictions no longer apply; normal tools an
 
 export const ENTER_TOOL_DESCRIPTION = [
 	"Ask the user to switch to plan mode before making changes.",
-	"Use it before non-trivial work: new features, changes across several files, architectural decisions,",
+	"Use it before non-trivial changes to files or system state: new features, changes across several files, architectural decisions,",
 	"several valid approaches, or unclear requirements. Do not use it for small, clear fixes or pure questions.",
+	"Do not use it for proposals, discussions, or research scoping that change no files; answer those in the chat.",
+	"Do not use it again to carry out a plan the user approved with exit_plan_mode that already covers the current work and its verification;",
+	"plan again after a material change in scope or approach.",
 	"The user must confirm; if they decline, continue in build mode.",
 ].join(" ");
 
@@ -76,7 +79,8 @@ export const EXIT_TOOL_DESCRIPTION = [
 ].join(" ");
 
 export const ENTER_TOOL_GUIDELINES = [
-	"Use enter_plan_mode before non-trivial or ambiguous changes so the user can approve a plan first.",
+	"Use enter_plan_mode before non-trivial or ambiguous changes to files or system state so the user can approve a plan first; answer proposals, discussions, and research scoping that change no files in the chat.",
+	"Do not re-enter plan mode to carry out a plan the user approved with exit_plan_mode that already covers the current work; plan again after a material change in scope or approach.",
 ];
 
 export const EXIT_TOOL_GUIDELINES = [

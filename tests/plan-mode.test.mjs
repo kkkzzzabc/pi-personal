@@ -6,6 +6,7 @@ import { after, describe, test } from "node:test";
 import { agentDir, defaultConfig, loadConfig } from "../extensions/plan-mode/config.ts";
 import { createPlanMode } from "../extensions/plan-mode/index.ts";
 import { canonicalPath, createPlanFilePath, resolveToolPath, targetsFile } from "../extensions/plan-mode/paths.ts";
+import { ENTER_TOOL_DESCRIPTION, ENTER_TOOL_GUIDELINES, enterNote } from "../extensions/plan-mode/prompts.ts";
 import { parseState, restoreState, STATE_ENTRY_TYPE } from "../extensions/plan-mode/state.ts";
 import { computeBuildTools, computePlanTools } from "../extensions/plan-mode/tools.ts";
 
@@ -438,6 +439,24 @@ describe("phase 2: notes, reminder, thinking", () => {
 		assert.ok((await h.context([])).messages[0].content[0].text.includes(planFile));
 		await h.command("off");
 		assert.equal(h.thinking, "low");
+	});
+});
+
+describe("prompt contract", () => {
+	test("entry guidance excludes no-change discussions and redundant re-entry", () => {
+		const guidance = ENTER_TOOL_GUIDELINES.join("\n");
+		for (const text of [ENTER_TOOL_DESCRIPTION, guidance]) {
+			assert.match(text, /proposals, discussions, (or|and) research scoping that change no files/);
+			assert.match(text, /plan the user approved with exit_plan_mode that already covers the current work/);
+			assert.match(text, /material change in scope or approach/);
+		}
+	});
+
+	test("the enter note scopes the plan to the requested outcome", () => {
+		const note = enterNote("/plans/p.md");
+		assert.match(note, /^<system-reminder>\nPlan mode is active\. Plan the work; do not do it\./);
+		assert.match(note, /requested outcome end to end, including the changes and verification/);
+		assert.match(note, /unless the user asked only for that, and do not expand it beyond the request/);
 	});
 });
 
