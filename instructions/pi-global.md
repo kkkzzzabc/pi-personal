@@ -13,7 +13,9 @@
   without phase-by-phase re-approval; respect mandatory tool approval flows.
 - Ask before additional live/paid model calls, installs, global settings,
   external transmission or state changes, destructive/hard-to-undo actions,
-  or expanded scope. Explain material scope changes before executing them.
+  or expanded scope; batch such questions into one. Explain material scope
+  changes before executing them. Finish defects in your own work before
+  reporting completion.
 - Make the smallest appropriate change, follow local conventions, and avoid
   unrelated cleanup or unnecessary machinery.
 - Verify the requested outcome with relevant existing checks; reproduce bugs

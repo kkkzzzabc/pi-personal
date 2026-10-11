@@ -178,3 +178,18 @@ projects still supply their own repository-specific conventions. Unexpected
 preexisting global instructions must be inspected, not overwritten. Rollback can
 restore the prior repository rules and explicitly remove the newly created global
 file; this task did not reset concurrent work, delete evidence, commit or push.
+
+## Amendments
+
+### 2026-10-12 — Candidate registration criterion
+- Change: The project backlog bullet was split; a seventh bullet sorts remaining
+  work into finish-now, ask-once, and candidate classes. The global file gained
+  one sentence (batch approval questions; finish defects in your own work), kept
+  identical between `instructions/pi-global.md` and `~/.pi/agent/AGENTS.md`.
+  Automatic wrap-up is now built by BL-yun3.
+- Reason: Unqualified candidate registration deferred work the session could
+  finish and added sessions and turns.
+- Impact: Project AGENTS has seven bullets; the deployment equality requirement
+  above still applies.
+- Evidence: [ADR 0005](0005-finish-in-session-work-before-registering-candidates.md),
+  session `01a12bfa-f0ef-7178-96d0-29ead0487e69`.

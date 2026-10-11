@@ -14,6 +14,7 @@ kind: <kind>
 - Outcome: <Why this matters and the intended result>
 - Next action: <One concrete next step>
 - Done when: <Checkable completion condition; add before starting>
+- Deferred because: <Candidates only: outside data/time, blocker, or user deferral>
 - Trigger: <When a conditional candidate becomes worth doing>
 - Blocked by: <Blocker and resumption condition>
 - References: <Links to source records>

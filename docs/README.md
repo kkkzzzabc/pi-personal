@@ -47,6 +47,11 @@ design. Keep `Approval` to one line: `Candidate only.` or approved scope/session
 On closure, add one `Closure` line with the result link or drop reason. Item files
 need no amendment log.
 
+A candidate records `Deferred because:` (outside data or time, a blocker, or the
+user's deferral). Defects and in-goal work found while working are finished in
+the session, not registered
+([ADR 0005](adr/0005-finish-in-session-work-before-registering-candidates.md)).
+
 ## Glossary
 
 `glossary.md` is a frontmatter-free index. Use `templates/glossary-entry.md`;
