@@ -1,0 +1,325 @@
+{
+  "outcome_cutoff": "2026-10-11T13:56:29.726Z",
+  "sessions": [
+    {
+      "bytes": 205015,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T14:47:40.987Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12646-598f-74a2-a87f-234587e03f33",
+      "sha256": "431e1ded29873609e94aad997fa46d2decb8fdeb4876828c3c5ea664066c21c8"
+    },
+    {
+      "bytes": 401795,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T14:56:29.868Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12648-bbf5-74e4-8415-a31ff44bd3a3",
+      "sha256": "bd32898e453f91c082274e45738b65739c1fc8fa9e6d27c9c48a54485766480f"
+    },
+    {
+      "bytes": 111530,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T14:50:22.760Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12649-4a38-75d5-a5f0-8a0e50d65e68",
+      "sha256": "80ea74d213525a083dc8d342765570fdc8081f2d18eaa327957d60f70f47b9de"
+    },
+    {
+      "bytes": 771026,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T15:26:05.648Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a1264d-73dc-7628-9e72-9260dca8d36e",
+      "sha256": "a0a5801b2eff59a9461415e9dee09945ba0ed8a6d90962036fc080e28c45c34c"
+    },
+    {
+      "bytes": 550939,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T15:11:20.173Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12652-f0c0-7395-a988-9a94eab5f82e",
+      "sha256": "e92c74bb784f2a9536df812a9542b9f1fd308226e9d3f35b2c5219a566731725"
+    },
+    {
+      "bytes": 472378,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T15:13:04.142Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12657-5b74-706d-969b-64ed87de1cc2",
+      "sha256": "f010bb6e7eff7eb97d49e7448b3fa7dcce6dad5ad491b815d7e3c8d8043ead23"
+    },
+    {
+      "bytes": 209077,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T15:25:36.807Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a1265e-6424-7395-a988-9a960359697b",
+      "sha256": "3361c78c0931098716afee0c306cda23ec9f0a1e7c723aeea1bb7bb157c64e27"
+    },
+    {
+      "bytes": 279311,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T15:22:54.500Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12663-eac3-7493-b578-42d78918169c",
+      "sha256": "613edae5ae0e164e36e386c8af8adff2353cc37163964791b0999d7ade0f2e75"
+    },
+    {
+      "bytes": 122478,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T15:32:33.249Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12671-4442-74c2-b296-2d57fd37a240",
+      "sha256": "0efa5d57b22db654bc604a999ec7eff6309bbb5a6fc52a7f74818a2367dd8bc2"
+    },
+    {
+      "bytes": 163467,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T15:58:00.401Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12680-98df-75c0-9dfb-1de0f6cfefb5",
+      "sha256": "928ef65a14ea8189ff10722f4fdb8966ab7ecd3b6ae5acc06d9309098ace4342"
+    },
+    {
+      "bytes": 1772260,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T16:59:35.058Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12690-1865-75c0-9dfb-1de20eb1d908",
+      "sha256": "15c75df4f78f1cfa0420e2aa420eb2c821cac9b7e4926fd34bf64840ade38558"
+    },
+    {
+      "bytes": 314511,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T17:06:29.311Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a126bd-ea38-754c-81b6-9646de1db353",
+      "sha256": "d407b06a479b99b6d315e90ddb2f2739bbbc1247f10c9c90c9e2386f55f1a96d"
+    },
+    {
+      "bytes": 20375,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T17:07:36.439Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a126c7-e2b8-754c-81b6-9649c310523e",
+      "sha256": "590b660074098fde00eb24fdfb4337ebb98215e30bb30952f5251e9c0adbb231"
+    },
+    {
+      "bytes": 3473212,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T19:42:20.352Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a126c9-521a-745a-88fa-51d8b8643342",
+      "sha256": "c4d5600c5a96f0ac561f756b1d76b6e772f0434c1f95273bb59b249546d92bcc"
+    },
+    {
+      "bytes": 990414,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T19:20:58.128Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a126e5-63ba-72b8-af15-e9d632953a12",
+      "sha256": "c89a399a708b6911580096127fd44bf5fefaa7a00221e4f5a45fe00e738f9310"
+    },
+    {
+      "bytes": 16727,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T18:24:43.035Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a1270e-7bb4-71fc-b931-8832a082b43b",
+      "sha256": "5b09380b879ff7b17dcc49bb15368f53d8592a5ee3ef5a6374f685dbdb99acda"
+    },
+    {
+      "bytes": 246321,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T19:39:57.461Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a1274f-21fa-75eb-a7cb-e17000a84e8a",
+      "sha256": "4fe04618aa1b8d8be00187b52a662e4b70e3b8f9774e0a5fc4e6d6055c1f6304"
+    },
+    {
+      "bytes": 1066980,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-10T20:01:08.953Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12755-a0eb-707b-b017-03e4fd74af5b",
+      "sha256": "3f60610cb17787c0e882f5c47e7c68be680f14657e0d958977106763512ec175"
+    },
+    {
+      "bytes": 1367273,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T02:43:24.360Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12764-d3ce-7687-a617-bb698837cf9f",
+      "sha256": "d4ac6bab2fb9ff279e985da37127d7ec99f58974cda7fb921b13d7b0509cc662"
+    },
+    {
+      "bytes": 924341,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T02:17:03.382Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12769-dbc3-768a-8634-77b4f367f8a7",
+      "sha256": "edde7c97dfd6def288ced5b0442aaaa11bd75056a5badc258f5daaded5955b08"
+    },
+    {
+      "bytes": 2421084,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T04:26:00.510Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a128d8-5cfb-767b-ad59-fc905ec35d3a",
+      "sha256": "a5304d309180d211a6112d9639e9e94573bf87bb954819e297811d8b86b6c227"
+    },
+    {
+      "bytes": 1376266,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T04:19:23.204Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12919-ee97-74ae-8f9a-5af58b90b8a7",
+      "sha256": "843826d4595b77f6f562080d7e52a1f8d32555bf44729533e8ccc391317a8af4"
+    },
+    {
+      "bytes": 1426126,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T04:21:44.001Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a1291c-0c2f-7706-9e56-bd64ae7009a1",
+      "sha256": "e8c58527ffb0bfbad30f604295470b5107d1541bc353e5a2914fc4d026b1fdae"
+    },
+    {
+      "bytes": 1205958,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T04:19:32.126Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a1291c-b600-7631-8446-84d61e317011",
+      "sha256": "d1e3bb4afa51eb7c29d1ea668d439fec2e416d4b35f30359eda091f767791e55"
+    },
+    {
+      "bytes": 763634,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T04:27:27.384Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a12921-60b2-73b2-b557-30f65188b003",
+      "sha256": "cf97516173b1d973dcc137d89f649a681634d6c0bfbf7efdee72737b70cc7b3a"
+    },
+    {
+      "bytes": 2179300,
+      "cohort": "primary-old",
+      "last_timestamp": "2026-10-11T06:21:26.997Z",
+      "reason": "One of the three latest substantial old-rule implementation sessions; manually reviewed.",
+      "session_id": "01a12936-147d-70ab-a076-0e34d5b60802",
+      "sha256": "338529f6cf6bd899b1ea383dc692781a48444bacb8fd96f9e16cdc679bf53952"
+    },
+    {
+      "bytes": 1805182,
+      "cohort": "primary-old",
+      "last_timestamp": "2026-10-11T07:25:31.028Z",
+      "reason": "One of the three latest substantial old-rule implementation sessions; manually reviewed.",
+      "session_id": "01a1299f-d4ab-70ab-a076-0e49632aada5",
+      "sha256": "0fb80396105083c51098b53b5889ded18db95bc932f4a160084e80bea981707e"
+    },
+    {
+      "bytes": 23598,
+      "cohort": "historical-context",
+      "last_timestamp": "2026-10-11T06:46:48.205Z",
+      "reason": "Earlier research, maintenance, setup, or implementation; extracted but excluded from the recent comparable implementation slice.",
+      "session_id": "01a129b6-c40b-76fa-8be1-72f996ff261f",
+      "sha256": "98b8757872c9003f411d3415a9529a06b77c0d6b8bd3de08ef7048dd00e49581"
+    },
+    {
+      "bytes": 865201,
+      "cohort": "primary-old",
+      "last_timestamp": "2026-10-11T07:42:06.558Z",
+      "reason": "One of the three latest substantial old-rule implementation sessions; manually reviewed.",
+      "session_id": "01a129ca-0a4e-70d5-b9c1-397ecbfbcb1f",
+      "sha256": "4f4e9cc27131761b476afd1739294cc1e3869c8b19661f52c979e565a62c9815"
+    },
+    {
+      "bytes": 659007,
+      "cohort": "excluded",
+      "last_timestamp": "2026-10-11T11:54:28.409Z",
+      "reason": "Migration session with old and lean prompt exposure.",
+      "session_id": "01a129dd-b454-70c2-b811-e4eb397912c2",
+      "sha256": "60209b41895df3aca8be631381911d48ebf11b262b2cfc43b887df278190817d"
+    },
+    {
+      "bytes": 537859,
+      "cohort": "primary-lean",
+      "last_timestamp": "2026-10-11T12:24:12.325Z",
+      "reason": "Substantial lean-rule implementation session; manually reviewed.",
+      "session_id": "01a12ad2-18bd-77be-b1c3-8042383628f1",
+      "sha256": "4b40eee06e966c6f63fc8c1e2db9d16200b623b7ef7e180d9a629ea5883c0f19"
+    },
+    {
+      "bytes": 64172,
+      "cohort": "lean-context",
+      "last_timestamp": "2026-10-11T11:59:35.458Z",
+      "reason": "Read-only inquiry, registration, or document maintenance; manually reviewed; excluded from feature action-rate denominator.",
+      "session_id": "01a12ad3-815d-7169-aa3f-b875c122b48a",
+      "sha256": "a652051a998087a2a760966f933532ec8d6f1fec25d48660e915fe4edbb619a0"
+    },
+    {
+      "bytes": 9024135,
+      "cohort": "primary-lean",
+      "last_timestamp": "2026-10-11T13:24:16.427Z",
+      "reason": "Substantial lean-rule implementation session; manually reviewed.",
+      "session_id": "01a12aec-6bcb-77be-b1c3-804cf025e6ca",
+      "sha256": "4e9c1e115b8acc5e11ee4e7047721b04eb59ae4dec7d6170a045508249b2f236"
+    },
+    {
+      "bytes": 363578,
+      "cohort": "lean-context",
+      "last_timestamp": "2026-10-11T13:04:06.926Z",
+      "reason": "Read-only inquiry, registration, or document maintenance; manually reviewed; excluded from feature action-rate denominator.",
+      "session_id": "01a12b0b-46cd-7547-a484-43d93515df5d",
+      "sha256": "f8fa8b86762cb43c878b4706f9b52cd3135015b0ca1419e0d37053b254913cc9"
+    },
+    {
+      "bytes": 306232,
+      "cohort": "lean-context",
+      "last_timestamp": "2026-10-11T13:30:02.704Z",
+      "reason": "Read-only inquiry, registration, or document maintenance; manually reviewed; excluded from feature action-rate denominator.",
+      "session_id": "01a12b10-6204-7547-a484-43db5c1488b0",
+      "sha256": "9df013d6e60227d0b4dbcf9a7fc9116123d44447ee3d9e8a0d6a157534f70b29"
+    },
+    {
+      "bytes": 772646,
+      "cohort": "primary-lean",
+      "last_timestamp": "2026-10-11T13:52:58.415Z",
+      "reason": "Substantial lean-rule implementation session; manually reviewed.",
+      "session_id": "01a12b28-32f7-7547-a484-43de317df55b",
+      "sha256": "99b6dbb841b9cd5df9929fa782240a07d9b7d264bfc5833aa6c374802da93c3a"
+    },
+    {
+      "bytes": 40576,
+      "cohort": "lean-context",
+      "last_timestamp": "2026-10-11T13:39:39.194Z",
+      "reason": "Read-only inquiry, registration, or document maintenance; manually reviewed; excluded from feature action-rate denominator.",
+      "session_id": "01a12b30-43b0-7547-a484-43e23b65c1c0",
+      "sha256": "28d870205907c68bf9fd5e4f39920a4e96f3e23c89277547fde166eb2af50304"
+    },
+    {
+      "bytes": 98142,
+      "cohort": "lean-context",
+      "last_timestamp": "2026-10-11T13:56:27.764Z",
+      "reason": "Read-only inquiry, registration, or document maintenance; manually reviewed; excluded from feature action-rate denominator.",
+      "session_id": "01a12b3d-6e96-7547-a484-43e4b97d4cbf",
+      "sha256": "913e50df7fa9800a665f211886a8f3caf7361dba81be4c06b5511379fc7745c5"
+    },
+    {
+      "bytes": 424656,
+      "cohort": "excluded",
+      "last_timestamp": "2026-10-11T14:02:39.085Z",
+      "reason": "Current evaluation session.",
+      "session_id": "01a12b40-319d-77e2-9d03-8e9041f86028",
+      "sha256": "3fa83f71ad8d77cba8d37b01eb920d32ab62fe8a2b110bd82d1645b52001bd9c"
+    },
+    {
+      "bytes": 99428,
+      "cohort": "excluded",
+      "last_timestamp": "2026-10-11T14:02:35.396Z",
+      "reason": "Started after the pre-evaluation outcome cutoff; not reviewed.",
+      "session_id": "01a12b44-b81d-709c-aef0-630dfe567265",
+      "sha256": "53d7374beb5f10aa8cb39cfd6c52f3ea039306f4991bf3ba0bb492331de87fc0"
+    }
+  ]
+}

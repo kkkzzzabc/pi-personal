@@ -1,0 +1,128 @@
+{
+  "historical_cutoff": "2026-10-11T07:31:12.007Z",
+  "recovered_script_sha256": "f5c0b7533bb175277566ad1242eafbe222e50fd37882da91c62fe026cde62fa4",
+  "sessions": [
+    {
+      "bytes": 20375,
+      "expected_legacy_chars": 0,
+      "last_timestamp": "2026-10-10T17:07:36.439Z",
+      "session_id": "01a126c7-e2b8-754c-81b6-9649c310523e",
+      "sha256": "590b660074098fde00eb24fdfb4337ebb98215e30bb30952f5251e9c0adbb231"
+    },
+    {
+      "bytes": 3473212,
+      "expected_legacy_chars": 13541,
+      "last_timestamp": "2026-10-10T19:42:20.352Z",
+      "session_id": "01a126c9-521a-745a-88fa-51d8b8643342",
+      "sha256": "c4d5600c5a96f0ac561f756b1d76b6e772f0434c1f95273bb59b249546d92bcc"
+    },
+    {
+      "bytes": 990414,
+      "expected_legacy_chars": 25166,
+      "last_timestamp": "2026-10-10T19:20:58.128Z",
+      "session_id": "01a126e5-63ba-72b8-af15-e9d632953a12",
+      "sha256": "c89a399a708b6911580096127fd44bf5fefaa7a00221e4f5a45fe00e738f9310"
+    },
+    {
+      "bytes": 16727,
+      "expected_legacy_chars": 0,
+      "last_timestamp": "2026-10-10T18:24:43.035Z",
+      "session_id": "01a1270e-7bb4-71fc-b931-8832a082b43b",
+      "sha256": "5b09380b879ff7b17dcc49bb15368f53d8592a5ee3ef5a6374f685dbdb99acda"
+    },
+    {
+      "bytes": 246321,
+      "expected_legacy_chars": 4438,
+      "last_timestamp": "2026-10-10T19:39:57.461Z",
+      "session_id": "01a1274f-21fa-75eb-a7cb-e17000a84e8a",
+      "sha256": "4fe04618aa1b8d8be00187b52a662e4b70e3b8f9774e0a5fc4e6d6055c1f6304"
+    },
+    {
+      "bytes": 1066980,
+      "expected_legacy_chars": 72376,
+      "last_timestamp": "2026-10-10T20:01:08.953Z",
+      "session_id": "01a12755-a0eb-707b-b017-03e4fd74af5b",
+      "sha256": "3f60610cb17787c0e882f5c47e7c68be680f14657e0d958977106763512ec175"
+    },
+    {
+      "bytes": 1367273,
+      "expected_legacy_chars": 17593,
+      "last_timestamp": "2026-10-11T02:43:24.360Z",
+      "session_id": "01a12764-d3ce-7687-a617-bb698837cf9f",
+      "sha256": "d4ac6bab2fb9ff279e985da37127d7ec99f58974cda7fb921b13d7b0509cc662"
+    },
+    {
+      "bytes": 924341,
+      "expected_legacy_chars": 29574,
+      "last_timestamp": "2026-10-11T02:17:03.382Z",
+      "session_id": "01a12769-dbc3-768a-8634-77b4f367f8a7",
+      "sha256": "edde7c97dfd6def288ced5b0442aaaa11bd75056a5badc258f5daaded5955b08"
+    },
+    {
+      "bytes": 2421084,
+      "expected_legacy_chars": 71753,
+      "last_timestamp": "2026-10-11T04:26:00.510Z",
+      "session_id": "01a128d8-5cfb-767b-ad59-fc905ec35d3a",
+      "sha256": "a5304d309180d211a6112d9639e9e94573bf87bb954819e297811d8b86b6c227"
+    },
+    {
+      "bytes": 1376266,
+      "expected_legacy_chars": 94149,
+      "last_timestamp": "2026-10-11T04:19:23.204Z",
+      "session_id": "01a12919-ee97-74ae-8f9a-5af58b90b8a7",
+      "sha256": "843826d4595b77f6f562080d7e52a1f8d32555bf44729533e8ccc391317a8af4"
+    },
+    {
+      "bytes": 1426126,
+      "expected_legacy_chars": 76878,
+      "last_timestamp": "2026-10-11T04:21:44.001Z",
+      "session_id": "01a1291c-0c2f-7706-9e56-bd64ae7009a1",
+      "sha256": "e8c58527ffb0bfbad30f604295470b5107d1541bc353e5a2914fc4d026b1fdae"
+    },
+    {
+      "bytes": 1205958,
+      "expected_legacy_chars": 81345,
+      "last_timestamp": "2026-10-11T04:19:32.126Z",
+      "session_id": "01a1291c-b600-7631-8446-84d61e317011",
+      "sha256": "d1e3bb4afa51eb7c29d1ea668d439fec2e416d4b35f30359eda091f767791e55"
+    },
+    {
+      "bytes": 763634,
+      "expected_legacy_chars": 82392,
+      "last_timestamp": "2026-10-11T04:27:27.384Z",
+      "session_id": "01a12921-60b2-73b2-b557-30f65188b003",
+      "sha256": "cf97516173b1d973dcc137d89f649a681634d6c0bfbf7efdee72737b70cc7b3a"
+    },
+    {
+      "bytes": 2179300,
+      "expected_legacy_chars": 58999,
+      "last_timestamp": "2026-10-11T06:21:26.997Z",
+      "session_id": "01a12936-147d-70ab-a076-0e34d5b60802",
+      "sha256": "338529f6cf6bd899b1ea383dc692781a48444bacb8fd96f9e16cdc679bf53952"
+    },
+    {
+      "bytes": 1805182,
+      "expected_legacy_chars": 98442,
+      "last_timestamp": "2026-10-11T07:25:31.028Z",
+      "session_id": "01a1299f-d4ab-70ab-a076-0e49632aada5",
+      "sha256": "0fb80396105083c51098b53b5889ded18db95bc932f4a160084e80bea981707e"
+    },
+    {
+      "bytes": 23598,
+      "expected_legacy_chars": 0,
+      "last_timestamp": "2026-10-11T06:46:48.205Z",
+      "session_id": "01a129b6-c40b-76fa-8be1-72f996ff261f",
+      "sha256": "98b8757872c9003f411d3415a9529a06b77c0d6b8bd3de08ef7048dd00e49581"
+    },
+    {
+      "bytes": 594946,
+      "expected_legacy_chars": 52042,
+      "last_timestamp": "2026-10-11T07:31:02.118Z",
+      "session_id": "01a129ca-0a4e-70d5-b9c1-397ecbfbcb1f",
+      "sha256": "74fd2b374c2f09ed694434e94090082c031807f145a3742c9b9fde592b99acba"
+    }
+  ],
+  "source_call_entry_id": "15a6dbd7",
+  "source_result_entry_id": "2c4dc97d",
+  "source_session_id": "01a129dd-b454-70c2-b811-e4eb397912c2"
+}

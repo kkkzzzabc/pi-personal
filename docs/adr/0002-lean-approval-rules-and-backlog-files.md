@@ -17,7 +17,10 @@ A review of 29 pi sessions in this workspace found:
   separate approval steps and re-asked after "proceed", costing user turns.
 - Approval provenance accumulating in docs: a per-session backlog Coverage
   section, multi-line Approval fields, and long provenance sections in plans.
-- Every session read roughly 60-100k characters of rule documents.
+- The original rule-reading proxy measured 17 time-filtered session rows,
+  ranging from 0 to 98,442 characters (median 52,042); the initial universal
+  summary of 60-100k per session was unsupported. See the
+  [bounded evaluation](../spikes/2026-10-11-lean-approval-rules-evaluation.md).
 - Concurrent sessions editing the single `docs/backlog.md` and `docs/README.md`.
 
 Likely cause (inferred): earlier documentation reviews turned single incidents
@@ -67,3 +70,27 @@ This replaces the single-index layout of
 - Automatic wrap-up (`BL-yun3`) remains open. The workspace adopted a local Git
   repository right after this change (`BL-df94`); a pre-change copy was kept
   outside the workspace for the migration itself.
+
+## Amendments
+
+### 2026-10-11 — Bounded evaluation and corrected baseline summary
+- Change: Corrected the historical rule-read summary and linked the
+  [offline evaluation](../spikes/2026-10-11-lean-approval-rules-evaluation.md).
+- Reason: The original script's 17 rows include zero and smaller values; a
+  concurrently active session also changed after the original measurement.
+- Impact: Explicit reads are smaller in the selected later cohort, but reduced
+  redundant approvals and absence of boundary issues are not established.
+  Historical experimental conditions and decision provenance remain unchanged.
+- Evidence: Session `01a12b40-319d-77e2-9d03-8e9041f86028`; frozen prefix hashes,
+  contextual classifications and reproduction commands in the linked spike.
+
+### 2026-10-11 — Curated global and project instructions
+- Change: [ADR 0003](0003-curated-global-and-project-instructions.md) supersedes
+  the instruction placement and guide wording while retaining the lean
+  authorization boundaries and file-per-item backlog.
+- Reason: Personal preferences should be reusable without importing the older
+  over-prescriptive personal file or duplicating repository rules globally.
+- Impact: Global and project AGENTS are smaller in combination; reviewer context
+  remains project-only. This record describes the original local-only layout.
+- Evidence: Session `01a12b40-319d-77e2-9d03-8e9041f86028`; the linked decision
+  records content selection, deployment and offline verification.

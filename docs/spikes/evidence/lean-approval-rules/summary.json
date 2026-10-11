@@ -1,0 +1,202 @@
+{
+  "groups": {
+    "lean": {
+      "action_episodes": 5,
+      "ambiguous_scope_friction_episodes": 1,
+      "ambiguous_shell_chars": {
+        "median": 17056,
+        "per_session": [
+          4975,
+          17056,
+          43165
+        ],
+        "range": [
+          4975,
+          43165
+        ]
+      },
+      "assistant_permission_to_stop_requests": 0,
+      "confirmed_redundant_approval_requests": 0,
+      "direct_categories": {
+        "agents": {
+          "median": 0,
+          "per_session": [
+            0,
+            0,
+            0
+          ]
+        },
+        "backlog": {
+          "median": 8586,
+          "per_session": [
+            4061,
+            9381,
+            8586
+          ]
+        },
+        "docs-guide": {
+          "median": 4254,
+          "per_session": [
+            4254,
+            4254,
+            4254
+          ]
+        },
+        "glossary": {
+          "median": 0,
+          "per_session": [
+            0,
+            0,
+            0
+          ]
+        },
+        "templates": {
+          "median": 1445,
+          "per_session": [
+            1445,
+            1445,
+            735
+          ]
+        }
+      },
+      "direct_returned_chars": {
+        "median": 13575,
+        "per_session": [
+          9760,
+          15080,
+          13575
+        ],
+        "range": [
+          9760,
+          15080
+        ]
+      },
+      "legacy_chars": {
+        "median": 15080,
+        "per_session": [
+          9760,
+          15080,
+          31867
+        ],
+        "range": [
+          9760,
+          31867
+        ]
+      },
+      "sessions": [
+        "01a12ad2-18bd-77be-b1c3-8042383628f1",
+        "01a12aec-6bcb-77be-b1c3-804cf025e6ca",
+        "01a12b28-32f7-7547-a484-43de317df55b"
+      ],
+      "strict_user_wrap_up_questions": 0,
+      "wrap_up_announcements": 1
+    },
+    "old": {
+      "action_episodes": 4,
+      "ambiguous_scope_friction_episodes": 1,
+      "ambiguous_shell_chars": {
+        "median": 21458,
+        "per_session": [
+          3002,
+          40557,
+          21458
+        ],
+        "range": [
+          3002,
+          40557
+        ]
+      },
+      "assistant_permission_to_stop_requests": 0,
+      "confirmed_redundant_approval_requests": 0,
+      "direct_categories": {
+        "agents": {
+          "median": 0,
+          "per_session": [
+            7859,
+            0,
+            0
+          ]
+        },
+        "backlog": {
+          "median": 31270,
+          "per_session": [
+            31270,
+            42309,
+            18294
+          ]
+        },
+        "docs-guide": {
+          "median": 13558,
+          "per_session": [
+            16133,
+            13558,
+            13558
+          ]
+        },
+        "glossary": {
+          "median": 0,
+          "per_session": [
+            0,
+            0,
+            0
+          ]
+        },
+        "templates": {
+          "median": 2018,
+          "per_session": [
+            735,
+            2018,
+            2018
+          ]
+        }
+      },
+      "direct_returned_chars": {
+        "median": 55997,
+        "per_session": [
+          55997,
+          57885,
+          33870
+        ],
+        "range": [
+          33870,
+          57885
+        ]
+      },
+      "legacy_chars": {
+        "median": 58999,
+        "per_session": [
+          58999,
+          98442,
+          55328
+        ],
+        "range": [
+          55328,
+          98442
+        ]
+      },
+      "sessions": [
+        "01a12936-147d-70ab-a076-0e34d5b60802",
+        "01a1299f-d4ab-70ab-a076-0e49632aada5",
+        "01a129ca-0a4e-70d5-b9c1-397ecbfbcb1f"
+      ],
+      "strict_user_wrap_up_questions": 3,
+      "wrap_up_announcements": 0
+    }
+  },
+  "historical_original": {
+    "median_legacy_chars": 52042,
+    "range_legacy_chars": [
+      0,
+      98442
+    ],
+    "reproduction": "17/17 match at original byte cutoff; one concurrently active session differs if its later entries are included.",
+    "rows": 17
+  },
+  "observed_post_safety": {
+    "limitations": "Not proof of absence; no child/subprocess/billing audit.",
+    "missing_global_setting_approval_found": 0,
+    "read_only_scratch_boundary_cases": 1,
+    "sessions_reviewed": 8,
+    "unapproved_repository_edits_found": 0
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "cross_host_evidence": {
+    "claude_child_files_excluded": 121,
+    "claude_parent_files": 67,
+    "codex_active_files": 80,
+    "codex_archived_files": 3,
+    "conversation_sessions_contextually_reviewed": 0,
+    "reason": "Instruction text and Pi evidence resolved the selection; additional transcript analysis was not needed."
+  },
+  "earlier_tui_runs": [
+    {
+      "assertions": {
+        "activeTools": [
+          "read"
+        ],
+        "calls": 1,
+        "mode": "faux",
+        "passed": true,
+        "personalOccurrences": 1,
+        "projectOccurrences": 1
+      },
+      "mode": "faux",
+      "pi_exited": true,
+      "run_basename": "instruction-split-tui-5NUqU1",
+      "tty_session_destroyed": true
+    },
+    {
+      "assertions": {
+        "activeTools": [
+          "read"
+        ],
+        "calls": 1,
+        "mode": "faux",
+        "passed": true,
+        "personalOccurrences": 0,
+        "projectOccurrences": 1
+      },
+      "mode": "faux",
+      "pi_exited": true,
+      "run_basename": "instruction-split-tui-FbrCzG",
+      "tty_session_destroyed": true
+    }
+  ],
+  "global_instruction_sha256": "6d1669c8b6a489c4af9a5e1cf36f15f8432a20b10cbd73a77185048d0f8806de",
+  "global_matches_canonical": true,
+  "host_package_version": "1.1.0",
+  "personal_source_sha256": "cc5226937931a5329b0318b18d450ddf14cb703ff9aaacd5bbd425479691e290",
+  "rules": {
+    "after": {
+      "AGENTS.md": {
+        "bytes": 1341,
+        "characters": 1341,
+        "lines": 20,
+        "top_level_bullets": 6
+      },
+      "docs/README.md": {
+        "bytes": 3097,
+        "characters": 3095,
+        "lines": 67,
+        "top_level_bullets": 4
+      },
+      "instructions/pi-global.md": {
+        "bytes": 1371,
+        "characters": 1371,
+        "lines": 21,
+        "top_level_bullets": 7
+      }
+    },
+    "before": {
+      "AGENTS.md": {
+        "bytes": 3914,
+        "characters": 3914,
+        "lines": 69,
+        "top_level_bullets": 18
+      },
+      "docs/README.md": {
+        "bytes": 4256,
+        "characters": 4254,
+        "lines": 96,
+        "top_level_bullets": 12
+      }
+    },
+    "combined_agents_after": {
+      "bytes": 2712,
+      "characters": 2712,
+      "lines": 41,
+      "top_level_bullets": 13
+    }
+  },
+  "review_follow_up": {
+    "configured_reviewers_succeeded": 2,
+    "initial_approval_metrics_tests": 10,
+    "markdown_primary_rows_match_summary": 6,
+    "historical_rows_still_match": 17,
+    "json_extraction_unchanged": true,
+    "regression_failed_before_fix": true,
+    "same_session_word_joined": true,
+    "scope": "Markdown aggregation and docs typo only; prior offline instruction-delivery results retained. User-authorized live reviewer calls are separate from implementation verification."
+  },
+  "semantic_note": "Bullet counts are structural; semantic preservation is documented in ADR 0003. Investigations and reviews explicitly remain read-only.",
+  "tests": {
+    "approval_metrics": 11,
+    "instruction_delivery": 3,
+    "live_model_calls": 0,
+    "subagent_context_integration": 14
+  },
+  "tui_runs": [
+    {
+      "assertions": {
+        "activeTools": [
+          "read"
+        ],
+        "calls": 1,
+        "mode": "faux",
+        "passed": true,
+        "personalOccurrences": 1,
+        "projectOccurrences": 1
+      },
+      "mode": "faux",
+      "pi_exited": true,
+      "run_basename": "instruction-split-tui-LUWANC",
+      "tty_session_destroyed": true
+    },
+    {
+      "assertions": {
+        "activeTools": [
+          "read"
+        ],
+        "calls": 1,
+        "mode": "faux",
+        "passed": true,
+        "personalOccurrences": 0,
+        "projectOccurrences": 1
+      },
+      "mode": "faux",
+      "pi_exited": true,
+      "run_basename": "instruction-split-tui-g6QUX9",
+      "tty_session_destroyed": true
+    }
+  ]
+}
