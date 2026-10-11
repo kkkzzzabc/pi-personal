@@ -28,8 +28,9 @@ completed implementation with evidence below.
 implementation and separately authorized global configuration application in the
 originating session. The loader now accepts 2–4 models; the project example and
 `~/.pi/agent/subagent.json` select Opus + Sol. Explorer settings were preserved.
-The already-running parent requires `/reload` for updated extension/prompt
-contracts; this task did not independently verify that reload or call real models.
+The user subsequently reported running `/reload` in the active parent to refresh
+extension/prompt contracts. This is user-confirmed execution, not an independent
+end-to-end verification; no real-model calls were made.
 
 ### Evidence and rationale
 
@@ -273,7 +274,8 @@ PI_PACKAGE_DIR="$root" npm run test:integration
 
 No unresolved substantive design choice remains for this narrowed scope.
 Implementation and configuration application were separately authorized and
-completed. Reload of the running parent remains a user action.
+completed. The user subsequently reported completing the running-parent reload;
+no further action remains for the approved scope.
 
 ## Verification evidence
 
@@ -313,5 +315,20 @@ release. No live provider calls, installs, or reviewer agents were used.
   `~/.pi/agent/subagent.json`. The actual `loadConfig` accepted the remaining
   Opus/Sol `high` roster and preserved Luna/Haiku explorer settings. No other
   global settings changed. The prior four-entry list remains recorded in the
-  predecessor plan for rollback. Reload and live-provider behavior remain
-  unverified, rather than being claimed as completed.
+  predecessor plan for rollback. At implementation completion, reload and
+  live-provider behavior had not been verified.
+- In session `01a12b3d-6e96-7547-a484-43e4b97d4cbf`, the user reported running
+  `/reload` in the active parent. The parent tool description exposes the updated
+  2–4-model configured-roster contract. This records user-confirmed reload and
+  the visible tool contract, not actual provider access or live review execution;
+  those remain unverified.
+
+## Amendments
+
+### 2026-10-11 — Record user-confirmed parent reload
+- Change: Replaced pending reload guidance with the user's completion report and
+  the visible updated tool contract; synchronized both completed backlog items.
+- Reason: The user reported running `/reload` and requested documentation updates.
+- Impact: No reload action remains for the approved scope. Offline verification
+  results are unchanged; live-provider behavior remains unverified.
+- Evidence: Session `01a12b3d-6e96-7547-a484-43e4b97d4cbf`.
