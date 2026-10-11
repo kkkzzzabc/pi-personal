@@ -10,8 +10,11 @@
 - Before closing work, sort what remains. Finish defects in your own work and
   in-goal doc, test, or diagnosis work that needs no new approval. Ask once,
   batched, for items needing approval or a design choice, then continue.
-  Register a candidate only when it needs outside data or time, is blocked, or
-  the user deferred it; record why. Name candidates in the final report.
+  Register a candidate only for a concrete unresolved problem within the
+  requested scope or work the user explicitly wants to revisit, and only when
+  it cannot be completed now. Record the impact and why it remains open. Do not
+  register speculative improvements or optional polish by default. Name newly
+  registered candidates in the final report.
 - Build project-owned local customizations from reference ideas, not unchanged
   reference packages or runtime dependencies on them. Adapt only the approved
   scope and preserve applicable attribution/licenses for reused code.
