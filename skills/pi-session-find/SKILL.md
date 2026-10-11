@@ -57,7 +57,8 @@ Newest first, default `--limit 30`. Columns: `ID` (first 8 chars), `STARTED`
 (local time), `DUR` (first to last entry), `CWD` (last two path segments),
 `MODEL` (last model used, `+N` when more were used), `MSG` (user/assistant
 counts), `TOOLS` (tool calls, `!N` errors), `SIZE` (file bytes), and the
-first user message that was typed (host-injected skill text is skipped).
+first user message that was typed (for a `/skill:` command, the arguments
+after the skill body; host-injected text without arguments is skipped).
 
 ```
 ID        STARTED           DUR    CWD         MODEL      MSG   TOOLS  SIZE   FIRST USER MESSAGE

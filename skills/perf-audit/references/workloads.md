@@ -1,11 +1,14 @@
 # Synthetic workloads
 
-Write each script to `/tmp/perf-<name>.ts` and import fork sources by
-absolute path (`/Users/.../pi/packages/...ts`); relative imports from
-`/tmp` do not resolve. Run from the fork root with
-`node /tmp/perf-<name>.ts` so bare package imports (`@earendil-works/*`)
-resolve through the fork's `node_modules`; delete the script after
-recording the numbers. Always run at least two sizes and report the ratio.
+Write each script to `/tmp/perf-<name>.ts` and import only fork source
+files, by absolute path (`/Users/.../pi/packages/<pkg>/src/...ts`). Bare
+package imports such as `@earendil-works/pi-tui` fail inside a `/tmp`
+script regardless of the working directory: ESM resolves them relative to
+the importing file, and `/tmp` has no `node_modules`. The fork files you
+import resolve their own bare imports fine. When you need a package export,
+import the fork source file that defines it instead. Run with
+`node /tmp/perf-<name>.ts` and delete the script after recording the
+numbers. Always run at least two sizes and report the ratio.
 Use `node --cpu-prof --cpu-prof-dir=/tmp/prof /tmp/perf-<name>.ts` when
 the hot spot is unclear; inspect the `.cpuprofile` top-down by self time.
 

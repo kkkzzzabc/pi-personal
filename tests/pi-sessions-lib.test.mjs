@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
 	collectStats, discoverSessionFiles, excerpt, iterateTexts, loadSessions, makeMatcher, matchesFilters, parseWhen, percentile,
-	readSession, resolveSessionsDir, summarizeSession, table, truncate,
+	readSession, resolveSessionsDir, sessionIdFromPath, summarizeSession, table, truncate, typedUserText,
 } from "../lib/pi-sessions.mjs";
 
 const FIXTURES = join(import.meta.dirname, "fixtures", "pi-sessions");
@@ -37,8 +37,9 @@ describe("readSession and summarizeSession", () => {
 	const files = discoverSessionFiles(FIXTURES);
 	const byId = Object.fromEntries(files.map((f) => [f.id, readSession(f.path)]));
 
-	test("tolerates a malformed line and finds subagent files", () => {
-		assert.equal(byId[S1].malformedLines, 1);
+	test("tolerates broken JSON and message entries without a role; finds subagent files", () => {
+		assert.equal(byId[S1].malformedLines, 2);
+		assert.ok(byId[S1].entries.every((e) => e.id !== "bad1"));
 		assert.equal(byId[S1].header.id, S1);
 		assert.deepEqual(byId[S1].subagentFiles, ["20261001-100500-000-reviewer-1.md"]);
 		assert.deepEqual(byId[S3].subagentFiles, []);
@@ -60,12 +61,23 @@ describe("readSession and summarizeSession", () => {
 		assert.equal(s.branchCount, 0);
 	});
 
-	test("summary skips injected skill text and counts a branch", () => {
+	test("summary uses the typed part of a skill command, counts a branch, parses the parent path", () => {
 		const s = summarizeSession(byId[S2]);
-		assert.equal(s.firstUserText, "Explain the throttle design");
-		assert.equal(s.userCount, 3, "injected skill message is not a user turn");
+		assert.equal(s.firstUserText, "Summarize the design");
+		assert.equal(s.userCount, 4, "a /skill: command with arguments is a user turn");
 		assert.equal(s.branchCount, 1);
-		assert.equal(s.parentSession, S1);
+		assert.match(s.parentSession, /_11111111-1111-4111-8111-111111111111\.jsonl$/);
+		assert.equal(s.parentSessionId, S1);
+	});
+
+	test("typedUserText and sessionIdFromPath", () => {
+		assert.equal(typedUserText("plain question"), "plain question");
+		assert.equal(typedUserText("<skill name=\"x\">body</skill>"), "");
+		assert.equal(typedUserText("<skill name=\"x\">body</skill>\n\n  do this  "), "do this");
+		assert.equal(typedUserText("<system-reminder>r</system-reminder>"), "");
+		assert.equal(sessionIdFromPath(`/a/b/2026-10-01T10-00-00-000Z_${S1}.jsonl`), S1);
+		assert.equal(sessionIdFromPath("/a/b/not-a-session.txt"), undefined);
+		assert.equal(sessionIdFromPath(undefined), undefined);
 	});
 });
 
@@ -128,7 +140,7 @@ describe("collectStats", () => {
 
 	test("overview totals", () => {
 		assert.equal(stats.overview.sessions, 3);
-		assert.equal(stats.overview.userTurns, 2 + 3 + 1);
+		assert.equal(stats.overview.userTurns, 2 + 4 + 1);
 		assert.equal(stats.overview.assistantMessages, 4 + 2 + 1);
 		assert.equal(stats.overview.toolCalls, 3 + 0 + 1);
 		assert.equal(stats.overview.toolErrors, 1);
@@ -159,6 +171,7 @@ describe("collectStats", () => {
 		assert.equal(stats.workload.longestSessionByEntries.id, S1);
 		assert.deepEqual(stats.workload.sessionsWithCompaction, [{ id: S1, compactions: 1 }]);
 		assert.equal(stats.topSessions[0].id, S1);
+		assert.deepEqual(Object.keys(stats.topSessions[0]), ["id", "startedAt", "cwd", "cost", "userCount", "assistantCount", "models"]);
 	});
 });
 

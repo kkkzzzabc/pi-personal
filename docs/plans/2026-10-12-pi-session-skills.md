@@ -94,3 +94,11 @@ implementing session and in each SKILL.md.
   streamed tool-call arguments; it is not a pure model latency.
 - Large `search --include tools` runs print many excerpts; excerpts and
   per-session counts are bounded by options.
+
+## Amendments
+
+### 2026-10-12 — Review fixes after the first commit
+- Change: `stats --json` top sessions are projected to display fields (no prompt text or paths); `parentSession` is parsed as a file path and shown as an id; `/skill:name args` messages count as user turns with the typed arguments as the first user text; message entries without a role are counted as malformed instead of aborting; perf-audit `workloads.md` import guidance corrected and `SKILL.md` references fixed.
+- Reason: Two-model review of `65e66db..382f82a` found the stats privacy statement, the parent display, the user-turn rule, and the tolerant-parsing contract did not match the implementation.
+- Impact: Design unchanged; `summarizeSession` gains `parentSessionId`, `typedUserText` replaces the injected-prefix check. Test count 43 → 45.
+- Evidence: Review session `01a12ba1-74b5-76b8-bc4a-1d2e52383857`; fork `session-manager.ts` (`parentSession: previousSessionFile`) and `agent-session.ts` (`${skillBlock}\n\n${args}`).

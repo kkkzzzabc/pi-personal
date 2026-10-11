@@ -147,7 +147,7 @@ export function showSession(dir, idOrPath, options) {
 	const header = [
 		`session   ${summary.id}`,
 		`path      ${summary.path}`,
-		`cwd       ${summary.cwd}${summary.parentSession ? `  (parent ${summary.parentSession.slice(0, 8)})` : ""}`,
+		`cwd       ${summary.cwd}${summary.parentSession ? `  (parent ${summary.parentSessionId ? summary.parentSessionId.slice(0, 8) : summary.parentSession})` : ""}`,
 		`time      ${fmtLocal(summary.startedAt)} → ${fmtLocal(summary.endedAt)}  (${fmtDuration(summary.durationMs)})`,
 		`models    ${summary.models.map((m) => `${m.provider}/${m.model} x${m.calls}`).join(", ") || "-"}`,
 		`counts    entries ${summary.entryCount}, user ${summary.userCount}, assistant ${summary.assistantCount}, tool calls ${summary.toolCallCount}, tool errors ${summary.toolErrorCount}, compactions ${summary.compactions}, branches ${summary.branchCount}${summary.malformedLines ? `, malformed lines ${summary.malformedLines}` : ""}`,

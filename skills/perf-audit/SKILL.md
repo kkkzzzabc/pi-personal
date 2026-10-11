@@ -52,8 +52,8 @@ because a workload shows superlinear growth or a bound is missing.
    `node --cpu-prof` when the hot spot is not obvious.
 4. **Decide.** Keep only candidates that are superlinear in a realistic
    size, or exceed the frame budget, or lack a bound on memory/disk. Drop the
-   rest and say why (see `past-findings.md`: 2-4 and 2-12 were dropped by
-   measurement). State the ranking and the risk of each fix before editing.
+   rest and say why (see `past-findings.md`: the session-path cache and the
+   skill-regex candidates were dropped by measurement). State the ranking and the risk of each fix before editing.
 5. **Fix.** Apply the matching shape from `references/fix-shapes.md`. Check
    the invariants listed there; they are where previous fixes regressed.
 6. **Verify.**

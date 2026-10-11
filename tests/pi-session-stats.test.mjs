@@ -23,7 +23,7 @@ describe("text output", () => {
 	});
 	test("overview numbers", () => {
 		assert.match(out, /^sessions 3 {2}span 2026-10-01 .* → 2026-10-03/m);
-		assert.match(out, /^user turns 6 {2}assistant messages 7 {2}tool calls 4 {2}tool errors 1$/m);
+		assert.match(out, /^user turns 7 {2}assistant messages 7 {2}tool calls 4 {2}tool errors 1$/m);
 		assert.match(out, /^cost \$0\.085 \(of which \$0\.065 from 2 non-message usage entries/m);
 	});
 	test("model and tool rows", () => {
@@ -58,6 +58,13 @@ describe("json output", () => {
 		assert.equal(data.workload.largestToolCallArgs[0].sessionId, S1);
 		assert.equal(data.topSessions.length, 2);
 		assert.equal(data.sessionsDir, DIR);
+	});
+	test("contains no conversation text or file paths", () => {
+		const raw = main(["--sessions-dir", DIR, "--json"], NOW);
+		assert.doesNotMatch(raw, /Please refactor the parser module/);
+		assert.doesNotMatch(raw, /Summarize the design/);
+		assert.equal(Object.hasOwn(data.topSessions[0], "firstUserText"), false);
+		assert.equal(Object.hasOwn(data.topSessions[0], "path"), false);
 	});
 	test("renderStats accepts the json model", () => {
 		assert.match(renderStats(data, { top: 1, dir: "x" }), /## Overview[\s\S]*source x;/);

@@ -35,7 +35,7 @@ describe("list", () => {
 		const lines = out.split("\n");
 		assert.match(lines[0], /^ID\s+STARTED\s+DUR\s+CWD\s+MODEL\s+MSG\s+TOOLS\s+SIZE\s+FIRST USER MESSAGE$/);
 		assert.match(lines[2], /^33333333 .*work\/beta .*glm-c .*Rename the config key/);
-		assert.match(lines[3], /^22222222 .*Explain the throttle design/);
+		assert.match(lines[3], /^22222222 .* 4\/2 .*Summarize the design/);
 		assert.equal(lines.length, 6);
 		assert.match(out, /2 sessions shown of 3 matched/);
 	});
@@ -88,7 +88,7 @@ describe("show", () => {
 		const out = showSession(DIR, "1111", {});
 		assert.match(out, /^session   11111111-1111/m);
 		assert.match(out, /models    anthropic\/claude-a x2, openai\/gpt-b x2/);
-		assert.match(out, /counts    entries 14, user 2, assistant 4, tool calls 3, tool errors 1, compactions 1, branches 0, malformed lines 1/);
+		assert.match(out, /counts    entries 14, user 2, assistant 4, tool calls 3, tool errors 1, compactions 1, branches 0, malformed lines 2/);
 		assert.match(out, /subagents 1: 20261001-100500-000-reviewer-1.md/);
 		assert.match(out, /^U # {2}2 \d\d:\d\d {2}Please refactor the parser module$/m);
 		assert.match(out, /^A # {2}5 \d\d:\d\d {2}claude-a {2}30s {2}Writing the new parser\. {2}tools: write x1$/m);
@@ -104,9 +104,10 @@ describe("show", () => {
 		assert.equal(data.summary.id, S1);
 		assert.equal(data.timeline.length, 10);
 	});
-	test("--full prints long text untruncated", () => {
+	test("--full prints long text untruncated; parent shown as the id parsed from its path", () => {
 		const text = showSession(DIR, "2222", { full: true });
 		assert.match(text, /At 1 KB it parses every delta; at 8 KB only after 1 KB more arrives\./);
+		assert.match(text, /^cwd       \/Users\/me\/work\/alpha  \(parent 11111111\)$/m);
 	});
 });
 
