@@ -38,3 +38,17 @@ Review regressions caught after the fixes (all fixed):
 - Proxy test could not detect throttling because `new Response(string)`
   delivers the body in one chunk.
 - A time-ratio assertion was replaced by counting highlighted lines.
+
+## 2026-10-12: edit renderer (reference-free trial of this skill)
+
+Scope: tool-call argument streaming through `renderers/edit.ts`, a path the
+Pi-Bolt audit did not touch. Numbers are single runs on one Mac.
+
+| Candidate | Path | Outcome | Evidence |
+|---|---|---|---|
+| `JSON.stringify` of all edits per `renderCall` (argsKey) | `edit.ts:216` | **Dropped** | Streaming 99 KB / 397 KB / 1.6 MB args in 20 B deltas through the throttled parser + `updateArgs` + `render`: 90 / 101 / 113 renderCalls, 14.9 / 32.9 / 129.6 ms total, 0.17 / 0.33 / 1.15 ms per renderCall. Sub-linear growth; far below the 16 ms frame budget. |
+| `renderDiff` re-run on each component rebuild after preview | `edit.ts:154` | Dropped without timing | Rebuilds happen only on full-tree `invalidate()` (theme change, grammar load, cell-size reply, PNG transcoder), not per frame. |
+| `computeEditsDiff` twice (preview at `argsComplete`, then tool execution) | `edit-diff.ts:514` | Dropped without timing | Constant two calls per edit; no per-delta work. |
+
+No code changed. Lesson for the skill: `/tmp` scripts need absolute import
+paths (workloads.md updated).

@@ -1,7 +1,10 @@
 # Synthetic workloads
 
-Run from the fork root so `.ts` imports resolve. Write each script to
-`/tmp/perf-<name>.ts`, run with `node /tmp/perf-<name>.ts`, delete after
+Write each script to `/tmp/perf-<name>.ts` and import fork sources by
+absolute path (`/Users/.../pi/packages/...ts`); relative imports from
+`/tmp` do not resolve. Run from the fork root with
+`node /tmp/perf-<name>.ts` so bare package imports (`@earendil-works/*`)
+resolve through the fork's `node_modules`; delete the script after
 recording the numbers. Always run at least two sizes and report the ratio.
 Use `node --cpu-prof --cpu-prof-dir=/tmp/prof /tmp/perf-<name>.ts` when
 the hot spot is unclear; inspect the `.cpuprofile` top-down by self time.
