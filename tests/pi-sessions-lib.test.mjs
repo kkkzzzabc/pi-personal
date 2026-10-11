@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
 	collectStats, discoverSessionFiles, excerpt, iterateTexts, loadSessions, makeMatcher, matchesFilters, parseWhen, percentile,
-	readSession, resolveSessionsDir, sessionIdFromPath, summarizeSession, table, truncate, typedUserText,
+	maxOf, readSession, resolveSessionsDir, sessionIdFromPath, summarizeSession, table, truncate, typedUserText,
 } from "../lib/pi-sessions.mjs";
 
 const FIXTURES = join(import.meta.dirname, "fixtures", "pi-sessions");
@@ -68,6 +68,26 @@ describe("readSession and summarizeSession", () => {
 		assert.equal(s.branchCount, 1);
 		assert.match(s.parentSession, /_11111111-1111-4111-8111-111111111111\.jsonl$/);
 		assert.equal(s.parentSessionId, S1);
+	});
+
+	test("lastModel is the most recent assistant model; endedAt uses the later of entry and message time", () => {
+		const t0 = Date.parse("2026-10-05T10:00:00Z");
+		const assistant = (id, model, entryMs, messageMs) => ({
+			type: "message", id, parentId: null, timestamp: new Date(entryMs).toISOString(),
+			message: { role: "assistant", content: [{ type: "text", text: "x" }], provider: "p", model, durationMs: 1000, timestamp: messageMs },
+		});
+		const session = {
+			path: "/x/2026-10-05T10-00-00-000Z_44444444-4444-4444-8444-444444444444.jsonl",
+			header: { type: "session", id: "44444444-4444-4444-8444-444444444444", cwd: "/w", timestamp: new Date(t0).toISOString() },
+			entries: [assistant("a1", "A", t0 + 1000, t0 + 1000), assistant("a2", "B", t0 + 2000, t0 + 2000), assistant("a3", "A", t0 + 20_000, t0 + 10_000)],
+			malformedLines: 0, bytes: 10, subagentFiles: [],
+		};
+		const s = summarizeSession(session);
+		assert.deepEqual(s.models.map((m) => m.model), ["A", "B"]);
+		assert.equal(s.lastModel.model, "A");
+		assert.equal(s.endedAt, t0 + 20_000, "entry timestamp (end of reply) wins over message timestamp (start)");
+		assert.equal(s.durationMs, 20_000);
+		assert.equal(summarizeSession(byId[S1]).lastModel.model, "gpt-b");
 	});
 
 	test("typedUserText and sessionIdFromPath", () => {
@@ -153,8 +173,8 @@ describe("collectStats", () => {
 		assert.equal(claude.calls, 4);
 		assert.equal(claude.errors, 0);
 		assert.deepEqual([claude.durationP50, claude.durationP95, claude.durationMax], [4000, 30_000, 30_000]);
-		// one call had cacheRead 3000 with input 1000; others input 1000 each: 3000 / (4000 + 3000)
-		assert.ok(Math.abs(claude.cacheReadRatio - 3000 / 7000) < 1e-9);
+		// one call had cacheRead 3000 and cacheWrite 500 with input 1000; others input 1000 each
+		assert.ok(Math.abs(claude.cacheReadRatio - 3000 / (4000 + 3000 + 500)) < 1e-9);
 		const gpt = stats.models.find((m) => m.model === "gpt-b");
 		assert.equal(gpt.errors, 1);
 	});
@@ -176,6 +196,12 @@ describe("collectStats", () => {
 });
 
 describe("formatting", () => {
+	test("maxOf handles empty and very large arrays", () => {
+		assert.equal(maxOf([]), 0);
+		assert.equal(maxOf([3, 9, 2]), 9);
+		assert.equal(maxOf([-5, -2]), -2);
+		assert.equal(maxOf(new Array(300_000).fill(1)), 1);
+	});
 	test("percentile uses nearest rank", () => {
 		assert.equal(percentile([], 50), 0);
 		assert.equal(percentile([5, 1, 3], 50), 3);

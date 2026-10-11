@@ -7,7 +7,9 @@
  *
  * Filters: --since 7d|ISO  --until 7d|ISO  --cwd substr  --provider substr  --model substr  --sessions-dir D
  */
+import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { collectStats, fmtBytes, fmtCost, fmtDuration, fmtLocal, loadSessions, parseWhen, resolveSessionsDir, shortCwd, table } from "../../../lib/pi-sessions.mjs";
 
 const VALUED = new Set(["since", "until", "cwd", "provider", "model", "sessions-dir", "top"]);
@@ -23,13 +25,22 @@ export function parseArgs(argv) {
 			options[name] = true;
 		} else if (VALUED.has(name)) {
 			const value = inline ?? argv[++index];
-			if (value === undefined) throw new Error(`--${name} needs a value`);
+			if (value === undefined || value.startsWith("--")) throw new Error(`--${name} needs a value`);
 			options[name] = value;
 		} else {
 			throw new Error(`Unknown option --${name}`);
 		}
 	}
 	return options;
+}
+
+
+/** A non-negative integer option, or `fallback` when absent. */
+export function countOption(options, name, fallback) {
+	if (options[name] === undefined) return fallback;
+	const value = Number(options[name]);
+	if (!Number.isInteger(value) || value < 0) throw new Error(`--${name} must be a non-negative integer, got "${options[name]}"`);
+	return value;
 }
 
 export function filtersFrom(options, now = Date.now()) {
@@ -129,12 +140,20 @@ export function main(argv, now = Date.now()) {
 	if (options.help) return HELP;
 	const dir = resolveSessionsDir({ sessionsDir: options["sessions-dir"] });
 	const stats = collectStats(loadSessions(dir, filtersFrom(options, now)));
-	const top = options.top === undefined ? 10 : Number(options.top);
+	const top = countOption(options, "top", 10);
 	if (options.json) return JSON.stringify({ sessionsDir: dir, ...stats, topSessions: stats.topSessions.slice(0, top) }, null, 2);
 	return renderStats(stats, { top, dir });
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === new URL(import.meta.url).pathname) {
+function isMainModule() {
+	try {
+		return Boolean(process.argv[1]) && realpathSync(resolve(process.argv[1])) === fileURLToPath(import.meta.url);
+	} catch {
+		return false;
+	}
+}
+
+if (isMainModule()) {
 	try {
 		process.stdout.write(`${main(process.argv.slice(2))}\n`);
 	} catch (error) {

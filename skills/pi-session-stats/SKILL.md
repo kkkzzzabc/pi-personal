@@ -62,7 +62,8 @@ messages.
   model that writes large files shows larger durations.
 - `OUT TOK/S`: median of output tokens ÷ duration per message. A
   throughput proxy, not time to first token.
-- `CACHE`: cache-read tokens ÷ (input + cache-read tokens).
+- `CACHE`: cache-read tokens ÷ (input + cache-read + cache-write tokens).
+  Providers report `input` without cached tokens, so all three are needed.
 - `IN TOK`, `OUT TOK`, `COST` as recorded by pi.
 
 **Tools.** One row per tool name: calls, errors (`isError` results),

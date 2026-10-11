@@ -44,8 +44,11 @@ node $SKILL/scripts/find.mjs search <query> [filters] [--regex] [--role user|ass
 node $SKILL/scripts/find.mjs show <id|prefix|path> [--full] [--query q] [--regex]
 ```
 
-Filters (all commands): `--since 7d|12h|ISO`, `--until ...`, `--cwd <substring>`,
-`--provider <substring>`, `--model <substring>`, `--sessions-dir <dir>`, `--json`.
+Filters (`list` and `search`): `--since 7d|12h|ISO`, `--until ...`,
+`--cwd <substring>`, `--provider <substring>`, `--model <substring>`.
+All commands: `--sessions-dir <dir>`, `--json`. `show` rejects session filters;
+it takes one session and the options listed in its section. Count options
+(`--limit`, `--max-per-session`) must be non-negative integers.
 
 The sessions directory is resolved like pi does: `PI_CODING_AGENT_SESSION_DIR`,
 then `PI_CODING_AGENT_DIR/sessions`, then `~/.pi/agent/sessions`. Use

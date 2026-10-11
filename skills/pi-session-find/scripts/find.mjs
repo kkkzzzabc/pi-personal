@@ -8,15 +8,17 @@
  *
  * Filters: --since 7d|ISO  --until 7d|ISO  --cwd substr  --provider substr  --model substr  --sessions-dir D  --json
  */
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
-	discoverSessionFiles, excerpt, fmtBytes, fmtDuration, fmtLocal, fmtTime, iterateTexts, loadSessions, makeMatcher, matchesFilters,
+	discoverSessionFiles, excerpt, fmtBytes, fmtDuration, fmtLocal, fmtTime, iterateTexts, loadSessions, makeMatcher,
 	messageText, parseWhen, readSession, resolveSessionsDir, shortCwd, summarizeSession, table, truncate,
 } from "../../../lib/pi-sessions.mjs";
 
 const VALUED = new Set(["since", "until", "cwd", "provider", "model", "sessions-dir", "limit", "role", "include", "max-per-session", "query"]);
 const FLAGS = new Set(["json", "regex", "full", "help"]);
+const SESSION_FILTERS = ["since", "until", "cwd", "provider", "model"];
 
 export function parseArgs(argv) {
 	const options = { positional: [] };
@@ -31,13 +33,22 @@ export function parseArgs(argv) {
 			options[name] = true;
 		} else if (VALUED.has(name)) {
 			const value = inline ?? argv[++index];
-			if (value === undefined) throw new Error(`--${name} needs a value`);
+			if (value === undefined || value.startsWith("--")) throw new Error(`--${name} needs a value`);
 			options[name] = value;
 		} else {
 			throw new Error(`Unknown option --${name}`);
 		}
 	}
 	return options;
+}
+
+
+/** A non-negative integer option, or `fallback` when absent. */
+export function countOption(options, name, fallback) {
+	if (options[name] === undefined) return fallback;
+	const value = Number(options[name]);
+	if (!Number.isInteger(value) || value < 0) throw new Error(`--${name} must be a non-negative integer, got "${options[name]}"`);
+	return value;
 }
 
 export function filtersFrom(options, now = Date.now()) {
@@ -52,7 +63,7 @@ export function filtersFrom(options, now = Date.now()) {
 
 export function listSessions(dir, options, now = Date.now()) {
 	const loaded = loadSessions(dir, filtersFrom(options, now));
-	const limit = options.limit === undefined ? 30 : Number(options.limit);
+	const limit = countOption(options, "limit", 30);
 	const shown = loaded.slice(0, limit).map(({ summary }) => summary);
 	if (options.json) return JSON.stringify({ shown: shown.length, matched: loaded.length, sessions: shown }, null, 2);
 	const rows = shown.map((s) => ({
@@ -60,7 +71,7 @@ export function listSessions(dir, options, now = Date.now()) {
 		started: fmtLocal(s.startedAt),
 		dur: fmtDuration(s.durationMs),
 		cwd: shortCwd(s.cwd),
-		model: s.models.length ? `${s.models[s.models.length - 1].model}${s.models.length > 1 ? ` +${s.models.length - 1}` : ""}` : "-",
+		model: s.lastModel ? `${s.lastModel.model}${s.models.length > 1 ? ` +${s.models.length - 1}` : ""}` : "-",
 		msg: `${s.userCount}/${s.assistantCount}`,
 		tools: s.toolErrorCount ? `${s.toolCallCount} !${s.toolErrorCount}` : String(s.toolCallCount),
 		size: fmtBytes(s.bytes),
@@ -78,7 +89,7 @@ export function searchSessions(dir, query, options, now = Date.now()) {
 	const matcher = makeMatcher(query, { regex: Boolean(options.regex) });
 	const roles = options.role === "user" ? ["user"] : options.role === "assistant" ? ["assistant"] : ["user", "assistant"];
 	const includeTools = options.include === "tools" || options.include === "all";
-	const maxPerSession = options["max-per-session"] === undefined ? 5 : Number(options["max-per-session"]);
+	const maxPerSession = countOption(options, "max-per-session", 5);
 	const results = [];
 	let totalMatches = 0;
 	for (const { session, summary } of loadSessions(dir, filtersFrom(options, now))) {
@@ -179,7 +190,8 @@ const HELP = `pi-session-find (read-only)
   list   [filters] [--limit N]
   search <query> [filters] [--regex] [--role user|assistant|all] [--include tools] [--max-per-session N]
   show   <id|prefix|path> [--full] [--query q] [--regex]
-filters: --since 7d|ISO --until 7d|ISO --cwd substr --provider substr --model substr --sessions-dir D --json`;
+filters (list, search): --since 7d|ISO --until 7d|ISO --cwd substr --provider substr --model substr
+all commands: --sessions-dir D --json`;
 
 export function main(argv) {
 	const options = parseArgs(argv);
@@ -194,13 +206,22 @@ export function main(argv) {
 			return searchSessions(dir, rest.join(" "), options);
 		case "show":
 			if (!rest[0]) throw new Error("show needs a session id, prefix, or path");
+			if (SESSION_FILTERS.some((name) => options[name] !== undefined)) throw new Error("show does not take session filters; use list or search");
 			return showSession(dir, rest[0], options);
 		default:
 			throw new Error(`Unknown command "${command}"\n${HELP}`);
 	}
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === new URL(import.meta.url).pathname) {
+function isMainModule() {
+	try {
+		return Boolean(process.argv[1]) && realpathSync(resolve(process.argv[1])) === fileURLToPath(import.meta.url);
+	} catch {
+		return false;
+	}
+}
+
+if (isMainModule()) {
 	try {
 		process.stdout.write(`${main(process.argv.slice(2))}\n`);
 	} catch (error) {

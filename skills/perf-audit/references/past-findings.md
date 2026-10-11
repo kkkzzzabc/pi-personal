@@ -26,7 +26,7 @@ Fork commits: `628cc6dfb`, `9ed8f5943`, `9815510bb`, `4787ab4ac`,
 | RPC JSONL long line rescans | `modes/rpc/jsonl.ts` | Kept (shape 5) | 8 MB line: 244 ms -> 3 ms |
 | Skill block regex backtracking | `agent-session.ts` | **Dropped** | 80 KB unterminated input: <0.1 ms on V8 in three variants; the reference's issue was its own regex engine |
 | `--version` fast path, hljs lazy load | `bun/cli.ts`, `syntax-highlight.ts` | Not pursued | ~1.4 ms / 1 MB; eager/lazy split already exists |
-| openai-responses grammar chunk append | `openai-responses.ts` | Not pursued | reference change not mapped to this fork's current structure (`appendGrammarToolInputJsonDelta` lives in `openai-completions.ts`); unmeasured |
+| openai-responses grammar chunk append | `openai-responses.ts` | Not pursued | the helper (`appendGrammarToolInputJsonDelta`, defined in `constrained-sampling.ts`) is shared by the completions and responses paths; the reference change was not mapped onto this structure and was not measured |
 | Engine-level (AOT, heap snapshot, launcher, Bun runtime tuning) | n/a | Not applicable | requires a patched runtime; the fork runs on Node |
 
 Review regressions caught after the fixes (all fixed):

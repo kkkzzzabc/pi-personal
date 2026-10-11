@@ -102,3 +102,9 @@ implementing session and in each SKILL.md.
 - Reason: Two-model review of `65e66db..382f82a` found the stats privacy statement, the parent display, the user-turn rule, and the tolerant-parsing contract did not match the implementation.
 - Impact: Design unchanged; `summarizeSession` gains `parentSessionId`, `typedUserText` replaces the injected-prefix check. Test count 43 → 45.
 - Evidence: Review session `01a12ba1-74b5-76b8-bc4a-1d2e52383857`; fork `session-manager.ts` (`parentSession: previousSessionFile`) and `agent-session.ts` (`${skillBlock}\n\n${args}`).
+
+### 2026-10-12 — Optional review improvements
+- Change: cache ratio denominator includes cache-write tokens; `lastModel` tracked for the `list` MODEL column; session end time is the later of entry and message timestamps; CLI count options validated and a following flag is no longer consumed as a value; `show` rejects session filters (documented); entry guard compares real paths so symlinked or space-containing paths run; `Math.max` spread replaced by `maxOf`; perf-audit past-findings grammar row corrected.
+- Reason: Optional findings from the same two-model review, confirmed against fork sources (`anthropic-messages.ts` usage fields and message timestamps).
+- Impact: CACHE values drop for providers that report cache writes (Anthropic), DUR grows by the last reply's duration; no design change. Test count 45 → 52.
+- Evidence: Session `01a12ba1-74b5-76b8-bc4a-1d2e52383857`.

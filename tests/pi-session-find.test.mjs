@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, test } from "node:test";
-import { filtersFrom, listSessions, main, parseArgs, resolveSessionPath, searchSessions, showSession } from "../skills/pi-session-find/scripts/find.mjs";
+import { after, describe, test } from "node:test";
+import { countOption, filtersFrom, listSessions, main, parseArgs, resolveSessionPath, searchSessions, showSession } from "../skills/pi-session-find/scripts/find.mjs";
 
 const DIR = join(import.meta.dirname, "fixtures", "pi-sessions");
 const S1 = "11111111-1111-4111-8111-111111111111";
@@ -17,9 +20,17 @@ describe("parseArgs", () => {
 		assert.equal(o.limit, "5");
 		assert.equal(o.include, "tools");
 	});
-	test("rejects unknown options and missing values", () => {
+	test("rejects unknown options and missing values, including a following flag", () => {
 		assert.throws(() => parseArgs(["--bogus"]), /Unknown option --bogus/);
 		assert.throws(() => parseArgs(["--since"]), /--since needs a value/);
+		assert.throws(() => parseArgs(["--limit", "--json"]), /--limit needs a value/);
+	});
+	test("countOption accepts non-negative integers only", () => {
+		assert.equal(countOption({}, "limit", 30), 30);
+		assert.equal(countOption({ limit: "0" }, "limit", 30), 0);
+		assert.throws(() => countOption({ limit: "-1" }, "limit", 30), /--limit must be a non-negative integer/);
+		assert.throws(() => countOption({ limit: "1.5" }, "limit", 30), /--limit must be/);
+		assert.throws(() => listSessions(DIR, { limit: "abc" }, NOW), /--limit must be/);
 	});
 	test("filtersFrom converts times and passes substrings", () => {
 		const f = filtersFrom({ since: "1d", cwd: "alpha" }, NOW);
@@ -38,6 +49,11 @@ describe("list", () => {
 		assert.match(lines[3], /^22222222 .* 4\/2 .*Summarize the design/);
 		assert.equal(lines.length, 6);
 		assert.match(out, /2 sessions shown of 3 matched/);
+	});
+	test("--limit 0 prints only the header and footer", () => {
+		const out = listSessions(DIR, { limit: "0" }, NOW);
+		assert.equal(out.split("\n").length, 4);
+		assert.match(out, /0 sessions shown of 3 matched/);
 	});
 	test("shows model count suffix and tool error marker", () => {
 		const out = listSessions(DIR, { cwd: "alpha", since: "2026-10-01", until: "2026-10-01T23:00:00Z" }, NOW);
@@ -119,5 +135,21 @@ describe("main", () => {
 	});
 	test("dispatches list with sessions dir", () => {
 		assert.match(main(["list", "--sessions-dir", DIR, "--limit", "1"]), /1 sessions shown of 3 matched/);
+	});
+	test("show rejects session filters", () => {
+		assert.throws(() => main(["show", "3333", "--cwd", "alpha", "--sessions-dir", DIR]), /show does not take session filters/);
+	});
+});
+
+describe("entry point", () => {
+	const scratch = mkdtempSync(join(tmpdir(), "pi personal "));
+	after(() => rmSync(scratch, { recursive: true, force: true }));
+
+	test("runs when invoked through a symlink in a directory with a space", () => {
+		const link = join(scratch, "find.mjs");
+		symlinkSync(join(import.meta.dirname, "..", "skills", "pi-session-find", "scripts", "find.mjs"), link);
+		const run = spawnSync(process.execPath, [link, "list", "--sessions-dir", DIR, "--limit", "1"], { encoding: "utf8" });
+		assert.equal(run.status, 0, run.stderr);
+		assert.match(run.stdout, /1 sessions shown of 3 matched/);
 	});
 });
