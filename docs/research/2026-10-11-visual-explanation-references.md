@@ -312,6 +312,15 @@ or trigger policy.
     static fallback; Korean text legible; claims verified; simplifications
     labeled.
 
+## Design follow-up
+
+The [accepted local skill design](../plans/2026-10-11-explain-with-visuals-skill.md)
+chooses general visual explanation, selective activation, offline single-file
+HTML with browser delivery, an editorial design system, and layered explanation.
+It uses original project-owned instructions and a starter, not an installed
+reference package. The open questions below preserve the research-stage state;
+implementation evidence and remaining limits live in the linked design.
+
 ## Open questions
 
 - Delivery UX in pi: file + browser only, or a future inline preview
@@ -338,3 +347,14 @@ or trigger policy.
   observed 2026-10-11); supporting repos and LOOPY as listed
 - Session working copies of fetched sources: `/tmp/visual-skill-reference-research/`
   (research aid, not part of docs)
+
+## Amendments
+
+### 2026-10-11 — Link accepted local skill design
+- Change: Added the design follow-up with chosen capability, activation,
+  delivery, visual language, and narrative defaults.
+- Reason: The user discussed and approved BL-011's design and implementation in
+  session `01a12aec-6bcb-77be-b1c3-804cf025e6ca`.
+- Impact: Research-stage defaults are no longer undecided for the first local
+  skill; historical reference findings and access conditions remain unchanged.
+- Evidence: [Editorial skill plan](../plans/2026-10-11-explain-with-visuals-skill.md).

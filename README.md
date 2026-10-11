@@ -45,6 +45,7 @@ Project work is indexed in [the backlog](docs/backlog/) (`python3 scripts/backlo
 | `ask-user/` | Extension | Independent parent-TUI `ask_user`: choices, custom answers, comments, review, discussion, and cancellation (see [User questions](#user-questions)) |
 | `subagent/` | Extension | `subagent` tool: read-only `explorer` and `reviewer` child agents with fresh context (see [Subagents](#subagents)) |
 | `review` | Prompt | `/review [target or focus]`: parallel reviewer subagents, verified and summarized; asks before fixing |
+| `explain-with-visuals` | Skill | Editorial visual explanations: offline HTML, layered prose, local browser QA and delivery |
 | `pi-docs` | Skill | Map of pi's documentation |
 | `pi-web` | Skill | One web entry point: ego for generic browser work; Aside for service integrations, delegation, and designated existing state |
 | `tui-check` | Skill | Verify pi changes in the real pi TUI with agent-tty and a scripted faux model; requires agent-tty 0.5.x |
@@ -52,6 +53,36 @@ Project work is indexed in [the backlog](docs/backlog/) (`python3 scripts/backlo
 The local Pi fork provides skill-based documentation guidance in its core.
 The former `claude.ts` extension was retired; see
 [`docs/adr/0001-move-docs-guidance-into-pi-fork.md`](docs/adr/0001-move-docs-guidance-into-pi-fork.md).
+
+## Visual explanations
+
+`explain-with-visuals` combines a concise answer, meaningful figures, mechanism
+explanation, and conditions/evidence. It supports relationships, workflows,
+comparisons, and simple data, with optional step highlighting or comparison
+controls. It uses an editorial light/dark design system with Korean-readable
+system fonts, not a dashboard/card template.
+
+```text
+/skill:explain-with-visuals Explain this request flow and its exception paths.
+/skill:explain-with-visuals Compare these two designs using the same criteria.
+/skill:explain-with-visuals Explain this concept in Korean with a step-by-step figure.
+```
+
+The model may also select it when a visual materially aids an authorized
+explanation; ordinary tables and short answers remain in chat. Loading a skill
+does not authorize writes during read-only investigation or active plan mode.
+
+Generated single-file HTML uses no CDN or automatic network requests and lives
+under `artifacts/visuals/` in the task workspace. The default is to verify and
+show the final page, then return its path, takeaway, and verification limits.
+Automated local visual QA uses installed ego-browser and current vendor
+instructions; generation does not require another local feature. If browser QA
+is unavailable, the file can still be delivered with explicitly missing checks.
+No automatic installs, additional model calls, uploads, or global changes.
+Complex simulations, maps, and slide decks are outside the initial scope.
+
+After changes use `/reload` for discovery. Design, narrative, and evidence:
+[editorial visual explanation plan](docs/plans/2026-10-11-explain-with-visuals-skill.md).
 
 ## Web workflow
 

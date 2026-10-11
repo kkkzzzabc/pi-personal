@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a saved result avoids repeated work — teaching model</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #F7F6F2; --surface: #FFFFFF; --ink: #20242B;
+  --muted: #5D6570; --accent: #2459C4; --caution: #946200;
+  --s1: .5rem; --s2: 1rem; --s3: 1.5rem; --s4: 2rem; --s6: 3rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  background: var(--page); color: var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #15181E; --surface: #1E232C; --ink: #EEF1F5;
+    --muted: #ACB5C2; --accent: #8AB4FF; --caution: #E5B65B;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; font-size: 1.125rem; line-height: 1.65; word-break: keep-all; overflow-wrap: break-word; }
+main { max-width: 70rem; margin: auto; padding: var(--s4) clamp(1rem, 4vw, 3rem) var(--s6); }
+h1, h2, h3, p, figure { margin: 0; }
+h1 { font-size: clamp(1.75rem, 3.2vw, 2.5rem); line-height: 1.2; text-wrap: balance; }
+h2 { font-size: 1.375rem; line-height: 1.35; margin-bottom: var(--s2); }
+h3 { font-size: 1.125rem; line-height: 1.4; }
+p + p { margin-top: var(--s2); }
+section, .evidence { margin-top: var(--s6); }
+header, .prose { max-width: 40em; }
+.kicker, .note { color: var(--muted); font-size: .875rem; }
+.kicker { margin-bottom: var(--s1); }
+.answer { margin-top: var(--s2); font-size: 1.125rem; }
+strong { font-weight: 650; }
+a { color: var(--accent); text-underline-offset: .2em; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.figure { background: var(--surface); padding: var(--s3); margin-top: var(--s3); border-radius: .5rem; }
+.figure-heading { margin-bottom: var(--s2); }
+.caption { color: var(--muted); font-size: 1rem; margin-top: var(--s3); max-width: 40em; }
+.routes { display: grid; gap: var(--s4); }
+.route h3 { margin-bottom: var(--s2); }
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s3); padding: 0; margin: 0; list-style: none; }
+.node { position: relative; border: 2px solid var(--muted); border-radius: .25rem; padding: var(--s2); font-size: 1rem; background: var(--surface); overflow-wrap: anywhere; }
+.node .number { display: block; color: var(--muted); font-size: 1rem; margin-bottom: var(--s1); }
+.node .label { display: block; font-weight: 600; }
+.connector { position: absolute; right: -1.4rem; top: 40%; color: var(--muted); font-size: 1.25rem; }
+.node[data-active="true"] { border-color: var(--accent); }
+.current { display: block; color: var(--accent); margin-top: var(--s1); font-size: 1rem; font-weight: 650; }
+.controls { display: flex; flex-wrap: wrap; gap: var(--s1); margin-top: var(--s3); }
+button { font: inherit; font-size: 1rem; padding: .5rem .75rem; background: var(--surface); color: var(--ink); border: 2px solid var(--muted); border-radius: .25rem; cursor: pointer; }
+button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
+.status { font-size: 1rem; margin-top: var(--s2); }
+.caution { color: var(--caution); border-left: 3px solid var(--caution); padding-left: var(--s2); margin-top: var(--s3); }
+.bar-row { display: grid; grid-template-columns: minmax(6rem, 1fr) 3fr minmax(3rem, auto); align-items: center; gap: var(--s2); font-size: 1rem; margin-top: var(--s2); }
+.bar-track { height: 1.25rem; border-left: 2px solid var(--muted); }
+.bar { width: var(--value); height: 100%; background: var(--accent); }
+.bar.other { background: var(--muted); }
+.evidence { border-top: 1px solid var(--muted); padding-top: var(--s3); }
+ul { padding-left: 1.4em; }
+code { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+@media (max-width: 42rem) {
+  .flow { grid-template-columns: minmax(0, 1fr); }
+  .connector { right: auto; left: calc(50% - .5rem); top: auto; bottom: -1.65rem; transform: rotate(90deg); }
+  .bar-row { grid-template-columns: minmax(0, 1fr) auto; gap: var(--s1); }
+  .bar-track { grid-column: 1 / -1; grid-row: 2; }
+  .figure { padding: var(--s2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+<main>
+<!-- Replace this example with the question, evidence, and smallest useful figures. -->
+<header>
+  <p class="kicker">Mechanism · illustrative teaching model</p>
+  <h1>Why can a saved result avoid repeated work?</h1>
+  <p class="answer">A valid saved result lets a request <strong>reuse earlier work</strong> instead of computing the same result again.</p>
+</header>
+<figure class="figure" aria-labelledby="paths-title" aria-describedby="paths-caption">
+  <h2 class="figure-heading" id="paths-title">Same request, two possible paths</h2>
+  <div class="routes">
+    <div class="route">
+      <h3>Hit: a valid result is available</h3>
+      <ol class="flow">
+        <li class="node" data-stage="0"><span class="number">1 · Request</span><span class="label">Ask for a result</span><span class="current" hidden>Current step</span><span class="connector" aria-hidden="true">→</span></li>
+        <li class="node" data-stage="1"><span class="number">2 · Lookup</span><span class="label">Find a valid saved result</span><span class="current" hidden>Current step</span><span class="connector" aria-hidden="true">→</span></li>
+        <li class="node" data-stage="2"><span class="number">3 · Resolve</span><span class="label">Reuse the saved result</span><span class="current" hidden>Current step</span><span class="connector" aria-hidden="true">→</span></li>
+        <li class="node" data-stage="3"><span class="number">4 · Return</span><span class="label">Return the result</span><span class="current" hidden>Current step</span></li>
+      </ol>
+    </div>
+    <div class="route">
+      <h3>Miss: no valid result is available</h3>
+      <ol class="flow">
+        <li class="node" data-stage="0"><span class="number">1 · Request</span><span class="label">Ask for a result</span><span class="current" hidden>Current step</span><span class="connector" aria-hidden="true">→</span></li>
+        <li class="node" data-stage="1"><span class="number">2 · Lookup</span><span class="label">No valid saved result</span><span class="current" hidden>Current step</span><span class="connector" aria-hidden="true">→</span></li>
+        <li class="node" data-stage="2"><span class="number">3 · Resolve</span><span class="label">Compute the result</span><span class="current" hidden>Current step</span><span class="connector" aria-hidden="true">→</span></li>
+        <li class="node" data-stage="3"><span class="number">4 · Return</span><span class="label">Return the result</span><span class="current" hidden>Current step</span></li>
+      </ol>
+    </div>
+  </div>
+  <div class="enhancement" hidden>
+    <div class="controls" role="group" aria-label="Highlight a processing step">
+      <button type="button" data-step="all" aria-pressed="true" data-message="Read both complete paths; choose a step to compare corresponding parts.">All steps</button>
+      <button type="button" data-step="0" aria-pressed="false" data-message="Both paths start with a request for a result.">1 · Request</button>
+      <button type="button" data-step="1" aria-pressed="false" data-message="Lookup determines whether a valid saved result is available.">2 · Lookup</button>
+      <button type="button" data-step="2" aria-pressed="false" data-message="The hit reuses a valid result; the miss computes it. This is the key difference.">3 · Resolve</button>
+      <button type="button" data-step="3" aria-pressed="false" data-message="Both paths return a result; this diagram makes no latency measurement.">4 · Return</button>
+    </div>
+    <p class="status" role="status" aria-live="polite">Read both complete paths; choose a step to compare corresponding parts.</p>
+  </div>
+  <figcaption class="caption" id="paths-caption">Arrows show the simplified processing order in each path. Corresponding positions have the same role; the important difference is reuse versus computation at step 3. Saving new results and invalidation are omitted.</figcaption>
+</figure>
+<section class="prose" aria-labelledby="mechanism-title">
+  <h2 id="mechanism-title">The avoided work is the point</h2>
+  <p>A <strong>hit</strong> means the needed valid result is already available; a <strong>miss</strong> means it is not. Reuse can skip the original computation, but finding and validating a saved result still has a cost.</p>
+  <p class="caution"><strong>Limitation:</strong> lookup is not always cheaper than computation. Changed inputs may make a saved result invalid; real systems need a validity or invalidation policy.</p>
+</section>
+<section aria-labelledby="data-title">
+  <h2 id="data-title">Counts do not measure speed</h2>
+  <p class="prose">In a synthetic set of 10 requests, 7 hits and 3 misses describe how often each path was taken, not how fast it ran.</p>
+  <figure class="figure" aria-label="Synthetic counts: 7 hits and 3 misses out of 10 requests">
+    <div class="bar-row"><span>Hits</span><div class="bar-track" aria-hidden="true"><div class="bar" style="--value: 70%"></div></div><span>7 / 10</span></div>
+    <div class="bar-row"><span>Misses</span><div class="bar-track" aria-hidden="true"><div class="bar other" style="--value: 30%"></div></div><span>3 / 10</span></div>
+    <figcaption class="caption">Illustrative data, not measurements. Both bars share a zero baseline and a maximum of 10 requests. No causal or latency conclusion follows from these counts alone.</figcaption>
+  </figure>
+</section>
+<footer class="evidence prose">
+  <h2>Evidence and verification</h2>
+  <p>This is an intentionally simplified teaching example, not a diagram of a particular implementation. The supplied synthetic counts sum to 10; labels and paths describe the model above.</p>
+  <p class="note">Artifact-specific browser checks have not been performed merely by copying this starter. Replace this note with checks actually performed and any remaining gaps.</p>
+</footer>
+</main>
+<script>
+// Enhance complete static content; initialization never hides the explanation.
+(() => {
+  const container = document.querySelector('.enhancement');
+  const buttons = [...document.querySelectorAll('[data-step]')];
+  const nodes = [...document.querySelectorAll('[data-stage]')];
+  const status = document.querySelector('.status');
+  if (!container || !status || !buttons.length || !nodes.length) return;
+  function select(button) {
+    buttons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    nodes.forEach(node => {
+      const active = node.dataset.stage === button.dataset.step;
+      node.dataset.active = String(active);
+      const marker = node.querySelector('.current');
+      if (marker) marker.hidden = !active;
+    });
+    status.textContent = button.dataset.message;
+  }
+  buttons.forEach(button => button.addEventListener('click', () => select(button)));
+  container.hidden = false;
+})();
+</script>
+</body>
+</html>

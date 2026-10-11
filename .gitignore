@@ -15,5 +15,8 @@ __pycache__/
 *.pyc
 .swiftpm/
 
+# Generated visual explanations and local QA evidence
+/artifacts/visuals/
+
 # Logs
 *.log
