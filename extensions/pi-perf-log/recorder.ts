@@ -38,8 +38,10 @@ export interface SessionRecord extends Base {
 }
 export interface TurnRecord extends Base, MemorySample {
 	type: "turn";
-	promptSeq: number;
+	runSeq: number;
 	turnIndex: number;
+	/** Session-file entry id of the assistant message from `turn_end`; null when the turn was flushed. */
+	messageEntryId: string | null;
 	provider: string | null;
 	model: string | null;
 	stopReason: string | null;
@@ -49,7 +51,10 @@ export interface TurnRecord extends Base, MemorySample {
 	providerMs: number | null;
 	turnMs: number;
 	toolCount: number;
+	/** Sum of tool execute() durations; exceeds wall-clock time when tools run in parallel. */
 	toolMs: number;
+	/** Wall-clock span from the first tool start to the last tool end in this turn. */
+	toolSpanMs: number;
 	toolNames: string[];
 	outputTokens: number | null;
 	overheadMs: number | null;
@@ -58,13 +63,14 @@ export interface TurnRecord extends Base, MemorySample {
 	/** Reserved for render-frame statistics from a future fork hook. */
 	frames: null;
 }
-export interface PromptRecord extends Base {
-	type: "prompt";
-	promptSeq: number;
-	promptMs: number;
+/** One agent run (`agent_start` to `agent_end`); a user prompt can cause several runs (auto-retry, continue). */
+export interface RunRecord extends Base {
+	type: "run";
+	runSeq: number;
+	runMs: number;
 	turns: number;
 }
-export type PerfRecord = SessionRecord | TurnRecord | PromptRecord;
+export type PerfRecord = SessionRecord | TurnRecord | RunRecord;
 
 /** Shape of the assistant message fields the recorder reads at `message_end`. */
 export interface AssistantEndInfo {
@@ -88,6 +94,8 @@ interface Pending {
 	outputTokens: number | null;
 	toolCount: number;
 	toolMs: number;
+	toolSpanStart: number | null;
+	toolSpanEnd: number | null;
 	toolNames: string[];
 }
 
@@ -97,9 +105,9 @@ export class Recorder {
 	private readonly clock: Clock;
 	private readonly getSessionId: () => string | undefined;
 	private pending: Pending | undefined;
-	private promptSeq = 0;
-	private promptT0: number | undefined;
-	private promptTurns = 0;
+	private runSeq = 0;
+	private runT0: number | undefined;
+	private runTurns = 0;
 
 	constructor(clock: Clock, getSessionId: () => string | undefined) {
 		this.clock = clock;
@@ -112,18 +120,18 @@ export class Recorder {
 
 	sessionStart(reason: string): { flushed?: TurnRecord; session: SessionRecord } {
 		const flushed = this.flushPending("session_start");
-		this.promptSeq = 0;
-		this.promptT0 = undefined;
-		this.promptTurns = 0;
+		this.runSeq = 0;
+		this.runT0 = undefined;
+		this.runTurns = 0;
 		const memory = this.clock.memory();
 		return { flushed, session: { ...this.base(), type: "session", reason, rss: memory.rss, heapUsed: memory.heapUsed } };
 	}
 
 	agentStart(): TurnRecord | undefined {
 		const flushed = this.flushPending("agent_start");
-		this.promptSeq++;
-		this.promptT0 = this.clock.now();
-		this.promptTurns = 0;
+		this.runSeq++;
+		this.runT0 = this.clock.now();
+		this.runTurns = 0;
 		return flushed;
 	}
 
@@ -131,7 +139,7 @@ export class Recorder {
 		const flushed = this.flushPending("turn_start");
 		this.pending = {
 			turnIndex, t0: this.clock.now(), connectMs: null, ttftMs: null, firstKind: null, provider: null, model: null,
-			stopReason: null, providerMs: null, outputTokens: null, toolCount: 0, toolMs: 0, toolNames: [],
+			stopReason: null, providerMs: null, outputTokens: null, toolCount: 0, toolMs: 0, toolSpanStart: null, toolSpanEnd: null, toolNames: [],
 		};
 		return flushed;
 	}
@@ -160,25 +168,33 @@ export class Recorder {
 		pending.outputTokens = typeof message.usage?.output === "number" ? message.usage.output : null;
 	}
 
+	toolStart(): void {
+		const pending = this.pending;
+		if (pending && pending.toolSpanStart === null) pending.toolSpanStart = this.clock.now();
+	}
+
 	toolEnd(toolName: string, durationMs?: number): void {
 		const pending = this.pending;
 		if (!pending) return;
 		pending.toolCount++;
 		if (typeof durationMs === "number") pending.toolMs += durationMs;
 		pending.toolNames.push(toolName);
+		const now = this.clock.now();
+		if (pending.toolSpanStart === null) pending.toolSpanStart = now;
+		pending.toolSpanEnd = now;
 	}
 
-	turnEnd(): TurnRecord | undefined {
-		return this.finalize(false);
+	turnEnd(messageEntryId?: string): TurnRecord | undefined {
+		return this.finalize(false, undefined, messageEntryId ?? null);
 	}
 
-	agentEnd(): { flushed?: TurnRecord; prompt: PromptRecord } {
+	agentEnd(): { flushed?: TurnRecord; run: RunRecord } {
 		const flushed = this.flushPending("agent_end");
-		const promptMs = this.promptT0 === undefined ? 0 : this.elapsed(this.promptT0);
-		const prompt: PromptRecord = { ...this.base(), type: "prompt", promptSeq: this.promptSeq, promptMs, turns: this.promptTurns };
-		this.promptT0 = undefined;
-		this.promptTurns = 0;
-		return { flushed, prompt };
+		const runMs = this.runT0 === undefined ? 0 : this.elapsed(this.runT0);
+		const run: RunRecord = { ...this.base(), type: "run", runSeq: this.runSeq, runMs, turns: this.runTurns };
+		this.runT0 = undefined;
+		this.runTurns = 0;
+		return { flushed, run };
 	}
 
 	shutdown(): TurnRecord | undefined {
@@ -194,18 +210,20 @@ export class Recorder {
 		return this.pending ? this.finalize(true, reason) : undefined;
 	}
 
-	private finalize(turnEndMissing: boolean, flushedBy?: FlushReason): TurnRecord | undefined {
+	private finalize(turnEndMissing: boolean, flushedBy?: FlushReason, messageEntryId: string | null = null): TurnRecord | undefined {
 		const p = this.pending;
 		if (!p) return undefined;
 		this.pending = undefined;
-		this.promptTurns++;
+		this.runTurns++;
 		const turnMs = this.elapsed(p.t0);
+		const toolSpanMs = p.toolSpanStart === null || p.toolSpanEnd === null ? 0 : Math.round(p.toolSpanEnd - p.toolSpanStart);
 		const memory = this.clock.memory();
 		const record: TurnRecord = {
 			...this.base(),
 			type: "turn",
-			promptSeq: this.promptSeq,
+			runSeq: this.runSeq,
 			turnIndex: p.turnIndex,
+			messageEntryId,
 			provider: p.provider,
 			model: p.model,
 			stopReason: p.stopReason,
@@ -216,9 +234,10 @@ export class Recorder {
 			turnMs,
 			toolCount: p.toolCount,
 			toolMs: p.toolMs,
+			toolSpanMs,
 			toolNames: p.toolNames,
 			outputTokens: p.outputTokens,
-			overheadMs: p.providerMs === null ? null : Math.max(0, turnMs - p.providerMs - p.toolMs),
+			overheadMs: p.providerMs === null ? null : Math.max(0, turnMs - p.providerMs - toolSpanMs),
 			rss: memory.rss,
 			heapUsed: memory.heapUsed,
 			external: memory.external,

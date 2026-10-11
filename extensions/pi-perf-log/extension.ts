@@ -11,7 +11,7 @@ import { createWriter, type Writer } from "./writer.ts";
 
 export const PERF_LOG_EVENTS = [
 	"session_start", "agent_start", "turn_start", "message_start", "message_update", "message_end",
-	"tool_execution_end", "turn_end", "agent_end", "session_shutdown",
+	"tool_execution_start", "tool_execution_end", "turn_end", "agent_end", "session_shutdown",
 ] as const;
 
 interface Dependencies {
@@ -66,8 +66,10 @@ export function createPerfLogExtension(deps: Dependencies) {
 		}));
 		pi.on("agent_start", guarded(() => write(recorder.agentStart())));
 		pi.on("turn_start", guarded((event: { turnIndex: number }) => write(recorder.turnStart(event.turnIndex))));
-		pi.on("message_start", guarded((event: { message: { role: string } }) => {
-			if (event.message.role === "assistant") recorder.assistantMessageStart();
+		pi.on("message_start", guarded((event: { message: { role: string; stopReason?: string } }) => {
+			// The host synthesizes message_start for a final error/aborted message when no stream opened.
+			const { role, stopReason } = event.message;
+			if (role === "assistant" && stopReason !== "error" && stopReason !== "aborted") recorder.assistantMessageStart();
 		}));
 		pi.on("message_update", guarded((event: { message: { role: string }; assistantMessageEvent: { type: string } }) => {
 			if (event.message.role === "assistant") recorder.assistantUpdate(event.assistantMessageEvent.type);
@@ -75,11 +77,17 @@ export function createPerfLogExtension(deps: Dependencies) {
 		pi.on("message_end", guarded((event: { message: { role: string } & Record<string, unknown> }) => {
 			if (event.message.role === "assistant") recorder.assistantMessageEnd(event.message);
 		}));
-		pi.on("tool_execution_end", guarded((event: { toolName: string; durationMs?: number }) => recorder.toolEnd(event.toolName, event.durationMs)));
-		pi.on("turn_end", guarded(() => write(recorder.turnEnd())));
+		// Nested calls (for example from a codemode script) are inside their parent's span and count.
+		pi.on("tool_execution_start", guarded((event: { parentToolCallId?: string }) => {
+			if (!event.parentToolCallId) recorder.toolStart();
+		}));
+		pi.on("tool_execution_end", guarded((event: { toolName: string; durationMs?: number; parentToolCallId?: string }) => {
+			if (!event.parentToolCallId) recorder.toolEnd(event.toolName, event.durationMs);
+		}));
+		pi.on("turn_end", guarded((event: { messageEntryId?: string }) => write(recorder.turnEnd(event.messageEntryId))));
 		pi.on("agent_end", guarded(() => {
 			const result = recorder.agentEnd();
-			write(result.flushed, result.prompt);
+			write(result.flushed, result.run);
 		}));
 		pi.on("session_shutdown", guarded(() => write(recorder.shutdown())));
 	};

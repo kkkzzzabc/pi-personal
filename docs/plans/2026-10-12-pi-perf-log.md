@@ -74,3 +74,11 @@ synthetic sizes.
   client; it is a ceiling, not a render measurement.
 - Follow-ups: `pi-session-stats` client-timing section; `perf-audit`
   workloads from real distributions; fork render-frame hook.
+
+## Amendments
+
+### 2026-10-12 — Data-quality fixes from review
+- Change: synthetic `message_start` for error/aborted messages no longer sets `connectMs`; `toolSpanMs` (wall-clock first tool start to last tool end, top-level calls only) added and `overheadMs` now subtracts it instead of the summed `toolMs`; `messageEntryId` from `turn_end` added as the join key with session files; `prompt` records renamed to `run` and `promptSeq` to `runSeq`, documented as agent-run counters that restart after every `session_start`.
+- Reason: Two-model review of `ad39307` found connect times recorded for failures without a stream (host emits a synthetic `message_start`), overhead clamped to 0 under the default parallel tool execution, and a false join claim for `promptSeq` across resume/reload and auto-retry runs.
+- Impact: Schema stays v1 (no reader existed yet); field set changed as above. Test count 19 → 23. A faux-model `tui-check` run confirmed `messageEntryId` equals the session file's assistant entry ids.
+- Evidence: Session `01a12ba1-74b5-76b8-bc4a-1d2e52383857`; fork `agent-loop.ts` (synthetic `message_start`, parallel tool execution), `agent-session.ts` (`agent.continue()` after retryable failures).

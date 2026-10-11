@@ -17,8 +17,8 @@ function fakeClock() {
 	return clock;
 }
 const TURN_KEYS = [
-	"v", "at", "sessionId", "pid", "type", "promptSeq", "turnIndex", "provider", "model", "stopReason", "connectMs", "ttftMs", "firstKind",
-	"providerMs", "turnMs", "toolCount", "toolMs", "toolNames", "outputTokens", "overheadMs", "rss", "heapUsed", "external", "arrayBuffers",
+	"v", "at", "sessionId", "pid", "type", "runSeq", "turnIndex", "messageEntryId", "provider", "model", "stopReason", "connectMs", "ttftMs", "firstKind",
+	"providerMs", "turnMs", "toolCount", "toolMs", "toolSpanMs", "toolNames", "outputTokens", "overheadMs", "rss", "heapUsed", "external", "arrayBuffers",
 	"turnEndMissing", "frames",
 ];
 
@@ -32,10 +32,15 @@ function fullTurn(recorder, clock) {
 	clock.t = 1900;
 	recorder.assistantUpdate("text_delta");
 	recorder.assistantMessageEnd({ provider: "anthropic", model: "claude-a", stopReason: "toolUse", durationMs: 8000, usage: { output: 512 } });
+	clock.t = 8100;
+	recorder.toolStart();
+	clock.t = 8400;
 	recorder.toolEnd("read", 300);
+	recorder.toolStart();
+	clock.t = 9040;
 	recorder.toolEnd("edit", 640);
 	clock.t = 9300;
-	return recorder.turnEnd();
+	return recorder.turnEnd("entry-1");
 }
 
 describe("Recorder", () => {
@@ -46,7 +51,8 @@ describe("Recorder", () => {
 		const record = fullTurn(recorder, clock);
 		assert.equal(record.type, "turn");
 		assert.equal(record.sessionId, "sess-1");
-		assert.equal(record.promptSeq, 1);
+		assert.equal(record.runSeq, 1);
+		assert.equal(record.messageEntryId, "entry-1");
 		assert.equal(record.connectMs, 400);
 		assert.equal(record.ttftMs, 1800);
 		assert.equal(record.firstKind, "thinking");
@@ -54,6 +60,7 @@ describe("Recorder", () => {
 		assert.equal(record.turnMs, 9300);
 		assert.equal(record.toolCount, 2);
 		assert.equal(record.toolMs, 940);
+		assert.equal(record.toolSpanMs, 940, "sequential tools: span equals the sum");
 		assert.deepEqual(record.toolNames, ["read", "edit"]);
 		assert.equal(record.outputTokens, 512);
 		assert.equal(record.overheadMs, 9300 - 8000 - 940);
@@ -129,7 +136,7 @@ describe("Recorder", () => {
 		assert.equal(record.outputTokens, null);
 	});
 
-	test("promptSeq counts prompts; prompt records count turns and time", () => {
+	test("runSeq counts agent runs; run records count turns and time; session_start restarts runSeq", () => {
 		const clock = fakeClock();
 		const recorder = new Recorder(clock, () => "s");
 		recorder.sessionStart("startup");
@@ -141,16 +148,16 @@ describe("Recorder", () => {
 		recorder.turnEnd();
 		const first = recorder.agentEnd();
 		assert.equal(first.flushed, undefined);
-		assert.deepEqual([first.prompt.type, first.prompt.promptSeq, first.prompt.promptMs, first.prompt.turns], ["prompt", 1, 2500, 2]);
+		assert.deepEqual([first.run.type, first.run.runSeq, first.run.runMs, first.run.turns], ["run", 1, 2500, 2]);
 		recorder.agentStart();
 		recorder.turnStart(0);
 		const second = recorder.turnEnd();
-		assert.equal(second.promptSeq, 2);
+		assert.equal(second.runSeq, 2);
 		assert.equal(second.turnIndex, 0);
 		recorder.sessionStart("resume");
 		recorder.agentStart();
 		recorder.turnStart(0);
-		assert.equal(recorder.turnEnd().promptSeq, 1, "session_start resets the prompt sequence");
+		assert.equal(recorder.turnEnd().runSeq, 1, "runSeq restarts after every session_start (documented; not unique per file)");
 	});
 
 	test("session id is read at write time", () => {
@@ -163,14 +170,73 @@ describe("Recorder", () => {
 		assert.equal(recorder.sessionStart("new").session.sessionId, "new");
 	});
 
-	test("tool end without a duration counts the call only", () => {
-		const recorder = new Recorder(fakeClock(), () => "s");
+	test("tool end without a duration counts the call only; span still covers it", () => {
+		const clock = fakeClock();
+		const recorder = new Recorder(clock, () => "s");
 		recorder.turnStart(0);
+		clock.t = 10;
 		recorder.toolEnd("bash");
 		const record = recorder.turnEnd();
 		assert.equal(record.toolCount, 1);
 		assert.equal(record.toolMs, 0);
+		assert.equal(record.toolSpanMs, 0, "end without start: zero-length span at the end time");
 		assert.deepEqual(record.toolNames, ["bash"]);
+	});
+
+	test("parallel tools: overhead uses the wall-clock span, not the summed durations", () => {
+		const clock = fakeClock();
+		const recorder = new Recorder(clock, () => "s");
+		recorder.turnStart(0);
+		recorder.assistantMessageEnd({ provider: "p", model: "m", stopReason: "toolUse", durationMs: 1000 });
+		clock.t = 1000;
+		recorder.toolStart();
+		recorder.toolStart();
+		recorder.toolStart();
+		clock.t = 2000;
+		recorder.toolEnd("a", 1000);
+		recorder.toolEnd("b", 1000);
+		recorder.toolEnd("c", 1000);
+		clock.t = 3200;
+		const record = recorder.turnEnd();
+		assert.equal(record.toolMs, 3000);
+		assert.equal(record.toolSpanMs, 1000);
+		assert.equal(record.overheadMs, 1200);
+	});
+
+	test("sequential tools with a gap: span covers the gap; no tools: span is zero", () => {
+		const clock = fakeClock();
+		const recorder = new Recorder(clock, () => "s");
+		recorder.turnStart(0);
+		recorder.assistantMessageEnd({ provider: "p", model: "m", stopReason: "toolUse", durationMs: 500 });
+		clock.t = 600;
+		recorder.toolStart();
+		clock.t = 700;
+		recorder.toolEnd("a", 100);
+		clock.t = 1200;
+		recorder.toolStart();
+		clock.t = 1300;
+		recorder.toolEnd("b", 100);
+		clock.t = 1400;
+		const gap = recorder.turnEnd();
+		assert.equal(gap.toolMs, 200);
+		assert.equal(gap.toolSpanMs, 700);
+		assert.equal(gap.overheadMs, 1400 - 500 - 700);
+		recorder.turnStart(1);
+		recorder.assistantMessageEnd({ provider: "p", model: "m", stopReason: "stop", durationMs: 300 });
+		clock.t = 1900;
+		const none = recorder.turnEnd();
+		assert.equal(none.toolSpanMs, 0);
+		assert.equal(none.overheadMs, 500 - 300);
+	});
+
+	test("flushed turns have a null messageEntryId; turn_end carries it", () => {
+		const recorder = new Recorder(fakeClock(), () => "s");
+		recorder.turnStart(0);
+		const flushed = recorder.turnStart(1);
+		assert.equal(flushed.messageEntryId, null);
+		assert.equal(recorder.turnEnd("abc").messageEntryId, "abc");
+		recorder.turnStart(2);
+		assert.equal(recorder.turnEnd().messageEntryId, null);
 	});
 });
 
@@ -179,16 +245,16 @@ describe("writer", () => {
 		const dir = join(scratch, "nested", "perf");
 		const writer = createWriter(() => dir);
 		assert.equal(writer.append({ v: 1, type: "session", at: "t", sessionId: "abc", pid: 1, reason: "startup", rss: 1, heapUsed: 1 }), true);
-		assert.equal(writer.append({ v: 1, type: "prompt", at: "t", sessionId: "abc", pid: 1, promptSeq: 1, promptMs: 5, turns: 1 }), true);
+		assert.equal(writer.append({ v: 1, type: "run", at: "t", sessionId: "abc", pid: 1, runSeq: 1, runMs: 5, turns: 1 }), true);
 		const lines = readFileSync(join(dir, "abc.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
-		assert.deepEqual(lines.map((l) => l.type), ["session", "prompt"]);
+		assert.deepEqual(lines.map((l) => l.type), ["session", "run"]);
 	});
 	test("skips records without a session id and never throws", () => {
 		const blocked = join(scratch, "blocked");
 		writeFileSync(blocked, "not a directory");
 		const writer = createWriter(() => blocked);
-		assert.equal(writer.append({ v: 1, type: "prompt", at: "t", sessionId: undefined, pid: 1, promptSeq: 1, promptMs: 5, turns: 1 }), false);
-		assert.equal(writer.append({ v: 1, type: "prompt", at: "t", sessionId: "x", pid: 1, promptSeq: 1, promptMs: 5, turns: 1 }), false);
+		assert.equal(writer.append({ v: 1, type: "run", at: "t", sessionId: undefined, pid: 1, runSeq: 1, runMs: 5, turns: 1 }), false);
+		assert.equal(writer.append({ v: 1, type: "run", at: "t", sessionId: "x", pid: 1, runSeq: 1, runMs: 5, turns: 1 }), false);
 	});
 });
 
@@ -254,7 +320,7 @@ describe("extension wiring", () => {
 		assert.deepEqual(Object.keys(h.handlers).sort(), [...PERF_LOG_EVENTS].sort());
 	});
 
-	test("writes session, turn, and prompt lines for a full sequence", () => {
+	test("writes session, turn, and run lines for a full sequence", () => {
 		const agentDir = join(scratch, "a1");
 		const h = harness({ agentDir });
 		h.fire("session_start", { reason: "startup" });
@@ -262,25 +328,55 @@ describe("extension wiring", () => {
 		h.fire("turn_start", { turnIndex: 0 });
 		h.clock.t = 300;
 		h.fire("message_start", { message: { role: "user" } });
-		h.fire("message_start", { message: { role: "assistant" } });
+		h.fire("message_start", { message: { role: "assistant", stopReason: "pending" } });
 		h.clock.t = 1200;
 		h.fire("message_update", { message: { role: "user" }, assistantMessageEvent: { type: "text_delta" } });
 		h.clock.t = 1500;
 		h.fire("message_update", { message: { role: "assistant" }, assistantMessageEvent: { type: "text_delta" } });
 		h.fire("message_end", { message: { role: "assistant", provider: "p", model: "m", stopReason: "stop", durationMs: 1400, usage: { output: 40 } } });
-		h.fire("tool_execution_end", { toolName: "read", durationMs: 20 });
+		h.clock.t = 1600;
+		h.fire("tool_execution_start", { toolCallId: "c1", toolName: "read" });
+		h.fire("tool_execution_start", { toolCallId: "c1-inner", toolName: "bash", parentToolCallId: "c1" });
+		h.fire("tool_execution_end", { toolCallId: "c1-inner", toolName: "bash", durationMs: 5, parentToolCallId: "c1" });
+		h.clock.t = 1700;
+		h.fire("tool_execution_end", { toolCallId: "c1", toolName: "read", durationMs: 20 });
 		h.clock.t = 2000;
-		h.fire("turn_end", { turnIndex: 0 });
+		h.fire("turn_end", { turnIndex: 0, messageEntryId: "entry-9" });
 		h.fire("agent_end", { messages: [] });
 		const lines = perfLines(agentDir, "sess-1");
-		assert.deepEqual(lines.map((l) => l.type), ["session", "turn", "prompt"]);
+		assert.deepEqual(lines.map((l) => l.type), ["session", "turn", "run"]);
 		assert.equal(lines[0].reason, "startup");
 		assert.equal(lines[1].connectMs, 300, "user message_start is ignored; assistant one counts");
 		assert.equal(lines[1].ttftMs, 1500, "user-role update is ignored");
 		assert.equal(lines[1].providerMs, 1400);
-		assert.deepEqual(lines[1].toolNames, ["read"]);
+		assert.deepEqual(lines[1].toolNames, ["read"], "nested call with parentToolCallId is not counted");
+		assert.equal(lines[1].toolCount, 1);
+		assert.equal(lines[1].toolMs, 20);
+		assert.equal(lines[1].toolSpanMs, 100);
+		assert.equal(lines[1].messageEntryId, "entry-9");
+		assert.equal(lines[2].runSeq, 1);
 		assert.equal(lines[2].turns, 1);
 		assert.equal(h.notifications.length, 0);
+	});
+
+	test("a synthetic message_start for an error or aborted message does not set connectMs", () => {
+		const agentDir = join(scratch, "a6");
+		const h = harness({ agentDir });
+		h.fire("session_start", { reason: "startup" });
+		h.fire("agent_start");
+		h.fire("turn_start", { turnIndex: 0 });
+		h.clock.t = 5000;
+		h.fire("message_start", { message: { role: "assistant", stopReason: "error", errorMessage: "connection refused" } });
+		h.fire("message_end", { message: { role: "assistant", provider: "p", model: "m", stopReason: "error", durationMs: 5000 } });
+		h.fire("turn_end", { turnIndex: 0, messageEntryId: "e1" });
+		h.fire("turn_start", { turnIndex: 1 });
+		h.clock.t = 5100;
+		h.fire("message_start", { message: { role: "assistant", stopReason: "aborted" } });
+		h.fire("message_end", { message: { role: "assistant", stopReason: "aborted" } });
+		h.fire("turn_end", { turnIndex: 1, messageEntryId: "e2" });
+		const turns = perfLines(agentDir, "sess-1").filter((l) => l.type === "turn");
+		assert.equal(turns.length, 2);
+		assert.deepEqual(turns.map((t) => [t.stopReason, t.connectMs, t.ttftMs, t.providerMs]), [["error", null, null, 5000], ["aborted", null, null, null]]);
 	});
 
 	test("disabled configuration writes nothing", () => {
