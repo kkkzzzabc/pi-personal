@@ -45,6 +45,7 @@ Project work is indexed in [the backlog](docs/backlog/) (`python3 scripts/backlo
 | `ask-user/` | Extension | Independent parent-TUI `ask_user`: choices, custom answers, comments, review, discussion, and cancellation (see [User questions](#user-questions)) |
 | `subagent/` | Extension | `subagent` tool: read-only `explorer` and `reviewer` child agents with fresh context (see [Subagents](#subagents)) |
 | `prompt-suggestions/` | Extension | Optional next-user prompt as ghost text; Tab accepts without submitting (see [Next-prompt suggestions](#next-prompt-suggestions)) |
+| `turn-summary/` | Extension | Three-line Done/Open/Next summary above the editor after each turn (see [Turn summaries](#turn-summaries)) |
 | `review` | Prompt | `/review [target or focus]`: parallel reviewer subagents, verified and summarized; asks before fixing |
 | `explain-with-visuals` | Skill | Editorial visual explanations: offline HTML, layered prose, local browser QA and delivery |
 | `perf-audit` | Skill | Audit and fix pi performance without a reference fork: measure first, fix only superlinear or unbounded paths, prove with count-based tests |
@@ -415,6 +416,77 @@ An explicit synthetic-only live evaluation is available (not part of offline
 `npm test`): `node tests/prompt-suggestions-live.mjs --run`. It makes six short
 calls per default model and stores synthetic evidence under ignored `artifacts/`.
 Run it only when live calls are authorized.
+
+## Turn summaries
+
+`extensions/turn-summary/` independently summarizes each successfully completed
+turn in up to three lines above the input editor: **Done** (what the turn did),
+**Open** (failed, unfinished, or unverified results), and **Next** (a suggested
+next action). It is display only: it does not continue the agent, change files,
+or store summaries. It does not require `prompt-suggestions`; both can be loaded
+together. Design: [turn summary plan](docs/plans/2026-10-12-turn-summary.md).
+
+- The summary appears after Pi fully settles a normal text response. Errors,
+  aborts, incomplete output, queued work, and non-TUI modes produce none.
+- It stays visible while you type the next prompt, and is removed when a new
+  prompt is submitted, a new run starts, or the session, branch, or compaction
+  changes. A late result for an older turn is discarded.
+- A trivial exchange can legitimately produce no summary. `Open` and `Next` lines
+  are omitted when empty. Labels are fixed English; values follow the user's
+  language.
+- The footer shows `summarizing…` while pending and `summary failed` on failure.
+  An identical repeated failure warns once.
+
+After `/reload` or a new session, summaries are **enabled by default** with
+`openai/gpt-6-luna`, falling back to `anthropic/claude-haiku-5-5` only for an
+unavailable model/auth or a provider/timeout failure. Malformed output is
+rejected without retry.
+
+```text
+/turn-summary              # Current summary, status, attempted models, latency, usage
+/turn-summary off          # Disable for this session; removes the widget
+/turn-summary on           # Enable for future completed turns
+/turn-summary model anthropic/claude-haiku-5-5  # Strict session model
+```
+
+Commands are session-only. Optional config: `<agentDir>/turn-summary.json`, then
+trusted project `.pi/turn-summary.json`. No file is created automatically.
+Unknown/invalid fields disable summaries with an error.
+
+```json
+{
+  "enabled": true,
+  "models": ["openai/gpt-6-luna", "anthropic/claude-haiku-5-5"],
+  "timeoutMs": 30000,
+  "maxTokens": 1024,
+  "maxContextChars": 12000,
+  "maxLineChars": 120,
+  "maxToolTrace": 40
+}
+```
+
+Bounds: `timeoutMs` 100–60000 (shared across up to two models), `maxTokens`
+128–4096, `maxContextChars` 1000–24000, `maxLineChars` 40–300 Unicode code
+points, `maxToolTrace` 0–100.
+
+**Data boundary:** each request sends, from the active branch only: the first
+user message (session goal), the latest request (including steering messages sent
+during that run) and final answer, up to two earlier messages, the previous summary (only if produced on an ancestor of the
+current leaf, marked unverified), and this turn's **tool trace**: tool name,
+success or error, and the `path` argument when present. Other tool arguments,
+commands, and tool results are not sent, nor are thinking, images, system or
+global instructions, other branches, or files. The whole serialized request
+context, including the tool trace and previous summary, is capped (default 12,000
+characters; failed tool calls are kept longest) but not secret-redacted; disable summaries for conversations you do
+not want sent to the configured providers. Nothing is written to disk or to the
+parent context. Status usage is this extension's in-memory, provider-reported
+total, not the main agent's native total.
+
+Summaries are advice and can be wrong; the main risk is overstating completion.
+See the [verification record](docs/spikes/2026-10-12-turn-summary-verification.md)
+for tested behavior and synthetic live results. A synthetic-only live evaluation
+is available outside `npm test`: `node tests/turn-summary-live.mjs --run`; run it
+only when live calls are authorized.
 
 ## Adding resources
 
