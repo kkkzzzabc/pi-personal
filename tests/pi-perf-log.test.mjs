@@ -231,6 +231,41 @@ describe("Recorder", () => {
 		assert.equal(none.overheadMs, 500 - 300);
 	});
 
+	test("frames: the source is reset at turn_start and read into turn_end and flushed records", () => {
+		const clock = fakeClock();
+		let calls = 0;
+		let next = 7;
+		const source = () => {
+			calls++;
+			const stats = { count: next, totalMs: next * 2, maxMs: 9, p95Ms: 8, over16Ms: 0 };
+			next = 0;
+			return stats;
+		};
+		const recorder = new Recorder(clock, () => "s", source);
+		recorder.turnStart(0);
+		assert.equal(calls, 1, "frames rendered before the turn are discarded at turn_start");
+		next = 3;
+		assert.deepEqual(recorder.turnEnd("e1").frames, { count: 3, totalMs: 6, maxMs: 9, p95Ms: 8, over16Ms: 0 });
+		recorder.turnStart(1);
+		next = 5;
+		const flushed = recorder.turnStart(2);
+		assert.equal(flushed.flushedBy, "turn_start");
+		assert.equal(flushed.frames.count, 5);
+		next = 2;
+		assert.equal(recorder.shutdown().frames.count, 2, "shutdown flush reads frames too");
+	});
+
+	test("frames: null without a source; a throwing source still yields the record", () => {
+		const plain = new Recorder(fakeClock(), () => "s");
+		plain.turnStart(0);
+		assert.equal(plain.turnEnd().frames, null);
+		const broken = new Recorder(fakeClock(), () => "s", () => { throw new Error("hook broken"); });
+		broken.turnStart(0);
+		const record = broken.turnEnd("e");
+		assert.equal(record.messageEntryId, "e");
+		assert.equal(record.frames, null);
+	});
+
 	test("flushed turns have a null messageEntryId; turn_end carries it", () => {
 		const recorder = new Recorder(fakeClock(), () => "s");
 		recorder.turnStart(0);
@@ -295,14 +330,15 @@ describe("config", () => {
 	});
 });
 
-function harness({ agentDir, clock = fakeClock(), load, sessionId = "sess-1" } = {}) {
+function harness({ agentDir, clock = fakeClock(), load, sessionId = "sess-1", mode, takeFrameStats } = {}) {
 	const handlers = {};
 	const pi = { on: (name, handler) => { handlers[name] = handler; } };
 	const notifications = [];
 	const ctx = {
 		cwd: "/cwd",
 		hasUI: true,
-		ui: { notify: (message, level) => notifications.push({ message, level }) },
+		mode,
+		ui: { notify: (message, level) => notifications.push({ message, level }), ...(takeFrameStats ? { takeFrameStats } : {}) },
 		isProjectTrusted: () => false,
 		sessionManager: { getSessionId: () => sessionId },
 	};
@@ -384,13 +420,37 @@ describe("extension wiring", () => {
 		assert.deepEqual(turns.map((t) => [t.stopReason, t.connectMs, t.ttftMs, t.providerMs]), [["error", null, null, 5000], ["aborted", null, null, null]]);
 	});
 
+	test("frames come from ctx.ui.takeFrameStats in TUI mode only, rounded to 0.1 ms", () => {
+		const stats = () => ({ count: 12, totalMs: 40.04, maxMs: 17.26, p95Ms: 17.26, over16Ms: 1 });
+		const run = (name, options) => {
+			const agentDir = join(scratch, name);
+			const h = harness({ agentDir, ...options });
+			h.fire("session_start", { reason: "startup" });
+			h.fire("agent_start");
+			h.fire("turn_start", { turnIndex: 0 });
+			h.fire("turn_end", { turnIndex: 0, messageEntryId: "e" });
+			return perfLines(agentDir, "sess-1").find((l) => l.type === "turn").frames;
+		};
+		assert.deepEqual(run("f1", { mode: "tui", takeFrameStats: stats }), { count: 12, totalMs: 40, maxMs: 17.3, p95Ms: 17.3, over16Ms: 1 });
+		assert.equal(run("f2", { mode: "rpc", takeFrameStats: stats }), null, "non-TUI mode is null even if the method exists");
+		assert.equal(run("f3", { mode: "print", takeFrameStats: () => undefined }), null);
+		assert.equal(run("f4", { mode: "tui" }), null, "host without the hook");
+		assert.equal(run("f5", { mode: "tui", takeFrameStats: () => undefined }), null);
+	});
+
 	test("disabled configuration writes nothing", () => {
 		const agentDir = join(scratch, "a2");
-		const h = harness({ agentDir, load: () => ({ config: { enabled: false, dir: null } }) });
+		let takes = 0;
+		const takeFrameStats = () => {
+			takes++;
+			return { count: 1, totalMs: 1, maxMs: 1, p95Ms: 1, over16Ms: 0 };
+		};
+		const h = harness({ agentDir, load: () => ({ config: { enabled: false, dir: null } }), mode: "tui", takeFrameStats });
 		h.fire("session_start", { reason: "startup" });
 		h.fire("turn_start", { turnIndex: 0 });
 		h.fire("turn_end", { turnIndex: 0 });
 		assert.deepEqual(perfLines(agentDir, "sess-1"), []);
+		assert.equal(takes, 0, "disabled logging does not reset the shared frame collector");
 	});
 
 	test("invalid configuration disables logging and warns once through the UI", () => {

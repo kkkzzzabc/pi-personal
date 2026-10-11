@@ -9,13 +9,23 @@ import type {
 	SessionShutdownEvent, SessionStartEvent, ToolExecutionEndEvent, ToolExecutionStartEvent, TurnEndEvent, TurnStartEvent,
 } from "@earendil-works/pi-coding-agent";
 import { loadConfig, outputDir, type PerfLogConfig } from "./config.ts";
-import { type Clock, type PerfRecord, Recorder, systemClock } from "./recorder.ts";
+import { type Clock, type FrameStatsRecord, type PerfRecord, Recorder, systemClock } from "./recorder.ts";
 import { createWriter, type Writer } from "./writer.ts";
 
 export const PERF_LOG_EVENTS = [
 	"session_start", "agent_start", "turn_start", "message_start", "message_update", "message_end",
 	"tool_execution_start", "tool_execution_end", "turn_end", "agent_end", "session_shutdown",
 ] as const;
+
+const tenths = (ms: number) => Math.round(ms * 10) / 10;
+
+/** Frame statistics from the fork's `ctx.ui.takeFrameStats()` hook; null outside the TUI or on hosts without it. */
+function takeFrames(ctx: ExtensionContext | undefined): FrameStatsRecord | null {
+	if (ctx?.mode !== "tui" || typeof ctx.ui.takeFrameStats !== "function") return null;
+	const stats = ctx.ui.takeFrameStats();
+	if (!stats) return null;
+	return { count: stats.count, totalMs: tenths(stats.totalMs), maxMs: tenths(stats.maxMs), p95Ms: tenths(stats.p95Ms), over16Ms: stats.over16Ms };
+}
 
 interface Dependencies {
 	agentDir: () => string;
@@ -38,7 +48,7 @@ export function createPerfLogExtension(deps: Dependencies) {
 			} catch {
 				return undefined;
 			}
-		});
+		}, () => (active ? takeFrames(ctx) : null)); // Disabled logging must not reset the shared collector.
 		const writer = (deps.writer ?? createWriter)(() => outputDir(config!, deps.agentDir()));
 
 		const write = (...records: (PerfRecord | undefined)[]) => {

@@ -1,6 +1,6 @@
 /**
  * Pure per-turn timing state machine. Fed by extension events; returns records to write.
- * No I/O, no pi imports: tests drive it with a fake clock and memory sampler.
+ * No I/O, no pi imports: tests drive it with a fake clock, memory sampler and frame-statistics source.
  *
  * Lifecycle facts this relies on (pi fork, agent-session.ts / agent-loop.ts):
  * - `turn_start` precedes the user message and the assistant stream; `turnIndex` restarts per prompt.
@@ -20,6 +20,17 @@ export interface Clock {
 	wall(): string;
 	memory(): MemorySample;
 }
+
+/** Render-frame statistics for one turn (see SCHEMA.md `frames`). */
+export interface FrameStatsRecord {
+	count: number;
+	totalMs: number;
+	maxMs: number;
+	p95Ms: number;
+	over16Ms: number;
+}
+/** Returns frame statistics since its previous call and resets them; null when unavailable. */
+export type FramesSource = () => FrameStatsRecord | null;
 
 export type FirstKind = "text" | "thinking" | "toolcall";
 export type FlushReason = "session_start" | "agent_start" | "turn_start" | "agent_end" | "shutdown";
@@ -60,8 +71,8 @@ export interface TurnRecord extends Base, MemorySample {
 	overheadMs: number | null;
 	turnEndMissing: boolean;
 	flushedBy?: FlushReason;
-	/** Reserved for render-frame statistics from a future fork hook. */
-	frames: null;
+	/** Render-frame statistics from `turn_start` to this record; null outside the TUI or without the fork hook. */
+	frames: FrameStatsRecord | null;
 }
 /** One agent run (`agent_start` to `agent_end`); a user prompt can cause several runs (auto-retry, continue). */
 export interface RunRecord extends Base {
@@ -104,14 +115,25 @@ const DELTA_KINDS: Record<string, FirstKind> = { text_delta: "text", thinking_de
 export class Recorder {
 	private readonly clock: Clock;
 	private readonly getSessionId: () => string | undefined;
+	private readonly frames: FramesSource;
 	private pending: Pending | undefined;
 	private runSeq = 0;
 	private runT0: number | undefined;
 	private runTurns = 0;
 
-	constructor(clock: Clock, getSessionId: () => string | undefined) {
+	constructor(clock: Clock, getSessionId: () => string | undefined, frames: FramesSource = () => null) {
 		this.clock = clock;
 		this.getSessionId = getSessionId;
+		this.frames = frames;
+	}
+
+	/** A failing frame source must not lose the turn record. */
+	private takeFrames(): FrameStatsRecord | null {
+		try {
+			return this.frames();
+		} catch {
+			return null;
+		}
 	}
 
 	private base(): Base {
@@ -137,6 +159,8 @@ export class Recorder {
 
 	turnStart(turnIndex: number): TurnRecord | undefined {
 		const flushed = this.flushPending("turn_start");
+		// Discard frames rendered between turns so the next record covers this turn only.
+		this.takeFrames();
 		this.pending = {
 			turnIndex, t0: this.clock.now(), connectMs: null, ttftMs: null, firstKind: null, provider: null, model: null,
 			stopReason: null, providerMs: null, outputTokens: null, toolCount: 0, toolMs: 0, toolSpanStart: null, toolSpanEnd: null, toolNames: [],
@@ -218,6 +242,7 @@ export class Recorder {
 		const turnMs = this.elapsed(p.t0);
 		const toolSpanMs = p.toolSpanStart === null || p.toolSpanEnd === null ? 0 : Math.round(p.toolSpanEnd - p.toolSpanStart);
 		const memory = this.clock.memory();
+		const frames = this.takeFrames();
 		const record: TurnRecord = {
 			...this.base(),
 			type: "turn",
@@ -243,7 +268,7 @@ export class Recorder {
 			external: memory.external,
 			arrayBuffers: memory.arrayBuffers,
 			turnEndMissing,
-			frames: null,
+			frames,
 		};
 		if (flushedBy) record.flushedBy = flushedBy;
 		return record;

@@ -50,7 +50,32 @@ calls it made.
 | `rss`, `heapUsed`, `external`, `arrayBuffers` | `process.memoryUsage()` at turn end, bytes. Process-wide: subagents run in the same process. |
 | `turnEndMissing` | `true` when the host did not emit `turn_end` and the turn was flushed by a later event |
 | `flushedBy` | Present with `turnEndMissing`: `"turn_start"`, `"agent_end"`, `"session_start"`, `"agent_start"`, or `"shutdown"` |
-| `frames` | Always `null` in v1; reserved for render-frame statistics from a future fork hook |
+| `frames` | Render-frame statistics for this turn, or `null` when unavailable: not TUI mode (`ctx.mode !== "tui"`), a pi build without `ctx.ui.takeFrameStats()`, or a failing hook. Records written before this field was filled are also `null`. See [Render frames](#render-frames). |
+
+### Render frames
+
+Filled from the pi fork's `ctx.ui.takeFrameStats()`. A frame is one
+synchronous TUI render pass: layout, line generation and the terminal write
+call. Asynchronous stdout flushing is not included, and there is no
+per-component breakdown. The window runs from `turn_start` to the moment the
+record is written (`turn_end` or a flush); frames rendered between turns are
+discarded. When the TUI switches between regular and fullscreen mode, the
+old renderer's frames carry over.
+
+| Field | Meaning |
+|---|---|
+| `count` | Frames rendered in the window; `0` is a valid measurement |
+| `totalMs` | Sum of frame durations, 0.1 ms precision |
+| `maxMs` | Longest frame, 0.1 ms precision |
+| `p95Ms` | Approximate 95th percentile: the upper edge of its histogram bucket (1 ms wide below 100 ms, 10 ms wide below 1 s, the maximum above), capped at `maxMs` |
+| `over16Ms` | Frames longer than 16 ms (one 60 Hz frame budget) |
+
+`frames.totalMs` is part of `overheadMs` only when rendering ran outside the
+provider and tool spans; frames rendered while streaming or while tools run
+also fall inside `providerMs` or `toolSpanMs`.
+
+The fork's collector is shared: another extension calling
+`takeFrameStats()` would take frames from this window.
 
 ## `run`
 
