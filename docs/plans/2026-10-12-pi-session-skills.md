@@ -28,7 +28,8 @@ which a reference fork used to supply.
 
 - Client-side performance metrics that the session format does not record:
   time to first token, TUI render time, process memory. These need changes in
-  the pi fork or an extension and are a separate item.
+  the pi fork or an extension and are a separate item. (Now read from
+  pi-perf-log records; see the 2026-10-12 "Client timing" amendment.)
 - Branch-aware projection of the entry tree. Stats count every entry in the
   file and say so.
 - Writing anything. Scripts print to stdout only; no scratch files, caches or
@@ -108,3 +109,9 @@ implementing session and in each SKILL.md.
 - Reason: Optional findings from the same two-model review, confirmed against fork sources (`anthropic-messages.ts` usage fields and message timestamps).
 - Impact: CACHE values drop for providers that report cache writes (Anthropic), DUR grows by the last reply's duration; no design change. Test count 45 → 52.
 - Evidence: Session `01a12ba1-74b5-76b8-bc4a-1d2e52383857`.
+
+### 2026-10-12 — Client timing section from pi-perf-log records (BL-wdgq)
+- Change: `pi-session-stats` adds a `## Client timing (pi-perf-log)` section and a `clientTiming` JSON key, read by the new `lib/pi-perf-records.mjs` from `<perfDir>/<sessionId>.jsonl` (`--perf-dir`, else `PI_CODING_AGENT_DIR/perf`, else `~/.pi/agent/perf`). It shows coverage (joins by `messageEntryId`, missing `turn_end`, skipped lines), per-model connect/TTFT/overhead percentiles, summed tool time versus span, render frames (frame-weighted mean and over-16 ms share, per-turn `p95Ms` distribution, longest frame), memory per session, and the turns with the largest overhead and longest frames.
+- Reason: pi-perf-log records the client metrics this plan listed as a non-goal, and render frames became available with BL-u9b6. Reading only the documented schema keeps the skill independent of the extension's code.
+- Impact: Only files of in-scope sessions are opened, so the existing filters apply; the section is omitted without records. Older records (`prompt` type, no `messageEntryId`/`toolSpanMs`/`frames`) are tolerated. Test count in `tests/pi-session-stats.test.mjs` 11 → 22; existing tests now pass `--perf-dir` so they never read the real home. Two-model review fixes before commit: tool sum and span compared over the same turns, connect/TTFT shown with one decimal in seconds, duplicate session ids read once with joined entry sets, `--top` bounds JSON memory rows, incomplete frame objects count as unmeasured, coverage-only output when only skipped lines exist.
+- Evidence: Session `01a12bfb-c9ab-735a-8d64-9cb2385d9b31`. A read-only run on real data (`--since 2d`) reported 217 turns in 4 of 64 sessions, 202 joined, 31 with frames; mean frame 2.5 ms, 0.5% over 16 ms, longest frame 250.5 ms.

@@ -6,13 +6,15 @@
  *   node stats.mjs [filters] [--top N] [--json]
  *
  * Filters: --since 7d|ISO  --until 7d|ISO  --cwd substr  --provider substr  --model substr  --sessions-dir D
+ * Client timing: pi-perf-log records from --perf-dir D (default <agentDir>/perf)
  */
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { collectClientTiming, loadPerfRecords, resolvePerfDir } from "../../../lib/pi-perf-records.mjs";
 import { collectStats, fmtBytes, fmtCost, fmtDuration, fmtLocal, loadSessions, parseWhen, resolveSessionsDir, shortCwd, table } from "../../../lib/pi-sessions.mjs";
 
-const VALUED = new Set(["since", "until", "cwd", "provider", "model", "sessions-dir", "top"]);
+const VALUED = new Set(["since", "until", "cwd", "provider", "model", "sessions-dir", "perf-dir", "top"]);
 const FLAGS = new Set(["json", "help"]);
 
 export function parseArgs(argv) {
@@ -101,6 +103,8 @@ export function renderStats(stats, { top = 10, dir = "" } = {}) {
 		],
 	)}`);
 
+	if (stats.clientTiming) sections.push(renderClientTiming(stats.clientTiming, top));
+
 	const w = stats.workload;
 	const workloadLines = ["## Workload sizes (inputs for perf-audit)"];
 	workloadLines.push("largest tool-call arguments:");
@@ -132,15 +136,75 @@ export function renderStats(stats, { top = 10, dir = "" } = {}) {
 	return `${sections.join("\n\n")}\n\nsource ${dir}; all entries in each file are counted, branches included`;
 }
 
+/** Client timings: ms with one decimal below 1 s, seconds with one decimal below 1 min, then fmtDuration. */
+function fmtMs(ms) {
+	if (!(ms > 0)) return "0ms";
+	if (ms < 1000) return `${Number(ms.toFixed(1))}ms`;
+	if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+	return fmtDuration(ms);
+}
+const pct = (share) => `${(share * 100).toFixed(1)}%`;
+const sampled = (stat, text) => (stat.n > 0 ? text : "-");
+
+export function renderClientTiming(ct, top = 10) {
+	const c = ct.coverage;
+	const lines = ["## Client timing (pi-perf-log)"];
+	lines.push(`turns ${c.turns}  sessions with records ${c.sessionsWithRecords}/${c.sessionsInScope}  joined to session entries ${c.joined}  turn_end missing ${c.turnEndMissing}  with frames ${c.withFrames}`);
+	if (c.malformedLines || c.otherVersions) lines.push(`skipped lines: ${c.malformedLines} malformed, ${c.otherVersions} other schema versions`);
+	if (c.turns === 0) {
+		lines.push("no schema v1 turn records in scope; check the pi-perf-log schema version");
+		return lines.join("\n");
+	}
+	lines.push(table(
+		ct.models.map((m) => ({
+			model: m.model,
+			turns: m.turns,
+			connect: sampled(m.connect, `${fmtMs(m.connect.p50)} / ${fmtMs(m.connect.p95)}`),
+			ttft: sampled(m.ttft, `${fmtMs(m.ttft.p50)} / ${fmtMs(m.ttft.p95)}`),
+			overhead: sampled(m.overhead, `${fmtMs(m.overhead.p50)} / ${fmtMs(m.overhead.p95)} / ${fmtMs(m.overhead.max)}`),
+		})),
+		[
+			{ key: "model", title: "MODEL" }, { key: "turns", title: "TURNS", align: "right" },
+			{ key: "connect", title: "CONNECT P50/P95", align: "right" }, { key: "ttft", title: "TTFT P50/P95", align: "right" },
+			{ key: "overhead", title: "OVERHEAD P50/P95/MAX", align: "right" },
+		],
+	));
+	const t = ct.tools;
+	lines.push(`tools: ${t.turns} turns with tools  over ${t.spannedTurns} with a span: summed tool time ${fmtMs(t.toolMs)}  wall-clock span ${fmtMs(t.toolSpanMs)}${t.withoutSpan ? `  (${t.withoutSpan} older turns without span excluded)` : ""}`);
+	const f = ct.frames;
+	if (f.measuredTurns === 0) {
+		lines.push(`render frames: not measured (${f.unmeasuredTurns} turns without frames: non-TUI mode or pi without the frame hook)`);
+	} else if (f.renderedTurns === 0) {
+		lines.push(`render frames: no frames rendered in ${f.measuredTurns} measured turns (${f.unmeasuredTurns} unmeasured)`);
+	} else {
+		lines.push(`render frames: ${f.frames} frames in ${f.renderedTurns} turns (${f.measuredTurns} measured, ${f.unmeasuredTurns} unmeasured)  mean ${fmtMs(f.meanFrameMs)}  per-turn p95 P50/P95 ${sampled(f.turnP95, `${fmtMs(f.turnP95.p50)} / ${fmtMs(f.turnP95.p95)}`)}  max ${fmtMs(f.maxFrameMs)}  over 16ms ${pct(f.over16Share)}`);
+	}
+	lines.push("memory by session (highest RSS first):");
+	for (const m of ct.memory) {
+		lines.push(`  ${m.sessionId.slice(0, 8)}  turns ${String(m.turns).padStart(4)}  rss ${fmtBytes(m.firstRss)} → ${fmtBytes(m.lastRss)} (max ${fmtBytes(m.maxRss)})  heap max ${fmtBytes(m.maxHeapUsed)}`);
+	}
+	const refs = (title, list) => {
+		if (list.length === 0) return;
+		lines.push(title);
+		for (const r of list.slice(0, top)) lines.push(`  ${fmtMs(r.value).padStart(8)}  session ${r.sessionId.slice(0, 8)} entry ${r.messageEntryId ?? "-"}  ${r.model ?? ""}`.trimEnd());
+	};
+	refs("largest overhead:", ct.slowest.overhead);
+	refs("longest frames:", ct.slowest.frame);
+	return lines.join("\n");
+}
+
 const HELP = `pi-session-stats (read-only)
-  node stats.mjs [--since 7d|ISO] [--until 7d|ISO] [--cwd substr] [--provider substr] [--model substr] [--sessions-dir D] [--top N] [--json]`;
+  node stats.mjs [--since 7d|ISO] [--until 7d|ISO] [--cwd substr] [--provider substr] [--model substr] [--sessions-dir D] [--perf-dir D] [--top N] [--json]`;
 
 export function main(argv, now = Date.now()) {
 	const options = parseArgs(argv);
 	if (options.help) return HELP;
 	const dir = resolveSessionsDir({ sessionsDir: options["sessions-dir"] });
-	const stats = collectStats(loadSessions(dir, filtersFrom(options, now)));
+	const loaded = loadSessions(dir, filtersFrom(options, now));
 	const top = countOption(options, "top", 10);
+	const perfDir = resolvePerfDir({ perfDir: options["perf-dir"] });
+	const perf = loadPerfRecords(perfDir, loaded.map(({ summary }) => summary.id));
+	const stats = { ...collectStats(loaded), clientTiming: collectClientTiming(perf, loaded, { top }) };
 	if (options.json) return JSON.stringify({ sessionsDir: dir, ...stats, topSessions: stats.topSessions.slice(0, top) }, null, 2);
 	return renderStats(stats, { top, dir });
 }

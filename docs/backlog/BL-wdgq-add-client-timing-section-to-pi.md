@@ -1,7 +1,7 @@
 ---
 id: BL-wdgq
 title: Add client timing section to pi-session-stats from pi-perf-log records
-status: candidate
+status: done
 kind: Implementation
 ---
 
@@ -12,4 +12,5 @@ kind: Implementation
 - Done when: The section appears only when perf records exist; numbers are covered by fixture-based tests; SKILL.md documents the new limits.
 - Trigger: Enough real perf records exist to make percentiles meaningful (a few days of use with `pi-perf-log` enabled).
 - References: [pi-perf-log plan](../plans/2026-10-12-pi-perf-log.md); [session skills plan](../plans/2026-10-12-pi-session-skills.md).
-- Approval: Candidate only.
+- Approval: Design and implementation approved (session `01a12bfb-c9ab-735a-8d64-9cb2385d9b31`).
+- Closure: Done — [plan amendment "Client timing section"](../plans/2026-10-12-pi-session-skills.md#2026-10-12--client-timing-section-from-pi-perf-log-records-bl-wdgq); `lib/pi-perf-records.mjs`, 22 tests in `tests/pi-session-stats.test.mjs`. README row update deferred to BL-svze while another session edits README.
