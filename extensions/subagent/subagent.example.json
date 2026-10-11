@@ -8,9 +8,7 @@
   "review": {
     "models": [
       "anthropic/claude-opus-5-5:high",
-      "openai/gpt-6.1-sol:high",
-      "xai/grok-4.7:high",
-      "zai/glm-5.3:high"
+      "openai/gpt-6.1-sol:high"
     ]
   }
 }

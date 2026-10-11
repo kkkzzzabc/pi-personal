@@ -11,7 +11,7 @@
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { isRoleName, loadRoles, ROLE_NAMES, type RoleDefinition, type RoleName } from "./agents.ts";
-import { loadConfig } from "./config.ts";
+import { loadConfig, MIN_REVIEW_MODELS, MAX_REVIEW_MODELS } from "./config.ts";
 import { formatBytes } from "./output.ts";
 import { type CallArgs, type ChildRow, callText, formatDuration, resultText, reviewSummary, reviewSummaryText, type ReviewSummary, type ThemeLike } from "./render.ts";
 import { type Candidate, type ChildResult, type ContextFile, createChildRunner, diagnostic, failureResult, modelIdentity, addUsage, ZERO_USAGE, type ParentContext, type RunnerOptions } from "./runner.ts";
@@ -24,7 +24,7 @@ export const TOOL_DESCRIPTION = [
 	"Delegate bounded read-only work to child agents that start with fresh context.",
 	"Roles: explorer maps the relevant code and reports locations with file:line; reviewer independently reviews a change, files, plan, or document and reports evidence-backed findings with a merge verdict.",
 	"Each child sees only its task text (reviewers also get the project's context files), has read-only tools (reviewer also has review_diff for uncommitted changes), cannot delegate, and returns its final answer.",
-	`Use agent+task for one child, tasks (up to ${MAX_TASKS}) for manual parallel work, or review: {task} for the configured four-model review roster.`,
+	`Use agent+task for one child, tasks (up to ${MAX_TASKS}) for manual parallel work, or review: {task} for the configured review roster.`,
 	"Explicit model overrides are strict (no fallback). Explorer defaults can have configured error fallback; review roster slots never replace models.",
 	"Long answers return a preview plus the path of a file with the full text.",
 ].join(" ");
@@ -38,7 +38,7 @@ export const PROMPT_GUIDELINES = [
 	"Use subagent tasks to run independent children in parallel, each with a distinct scope or angle; do not split work that depends on another child's result.",
 	"Reviewers read uncommitted changes themselves with review_diff; for commits, plans, or documents, name the files or write a diff file and pass its path in the task.",
 	"Before editing code or presenting conclusions based on a subagent report, verify the file:line claims you rely on by reading them.",
-	"For /review use subagent with review: {task}; the extension assigns the configured four distinct models. Do not substitute unspecified-model tasks or guess the roster. Report incomplete coverage and missing models; with no successful reviews give no merge verdict.",
+	"For /review use subagent with review: {task}; the extension assigns the configured distinct models. Do not substitute unspecified-model tasks or guess the roster. Report incomplete coverage and missing models; with no successful reviews give no merge verdict.",
 ];
 
 const TASK_PROPERTIES = {
@@ -52,7 +52,7 @@ const PARAMETERS = {
 	properties: {
 		...TASK_PROPERTIES,
 		review: {
-			type: "object", description: "Run one independent strict reviewer per configured roster model (four in parallel).",
+			type: "object", description: "Run one independent strict reviewer per configured roster model (2-4 in parallel).",
 			properties: { task: TASK_PROPERTIES.task }, required: ["task"], additionalProperties: false,
 		},
 		tasks: {
@@ -81,7 +81,7 @@ export function parseRequests(params: CallArgs, reviewModels?: readonly string[]
 		if (typeof value !== "object" || value === null || Array.isArray(value) || Object.keys(value).some((key) => key !== "task")) throw new Error("review must contain only a task.");
 		const task = (value as { task?: unknown }).task;
 		if (typeof task !== "string" || !task.trim()) throw new Error("review.task must be a non-empty string.");
-		if (!reviewModels || reviewModels.length !== MAX_TASKS) throw new Error("Configure review.models with four distinct models in subagent.json before running /review. Parent-model substitution is not allowed.");
+		if (!reviewModels || reviewModels.length < MIN_REVIEW_MODELS || reviewModels.length > MAX_REVIEW_MODELS) throw new Error(`Configure review.models with ${MIN_REVIEW_MODELS}-${MAX_REVIEW_MODELS} distinct models in subagent.json before running /review. Parent-model substitution is not allowed.`);
 		return reviewModels.map((model) => ({ agent: "reviewer", task: task.trim(), model }));
 	}
 	if (params.tasks !== undefined && single) throw new Error("Use either agent+task or tasks, not both.");

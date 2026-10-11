@@ -93,7 +93,7 @@ export function callText(args: CallArgs, theme: ThemeLike): string {
 	const title = theme.fg("toolTitle", theme.bold("subagent"));
 	if (args.review !== undefined) {
 		const task = (args.review as { task?: unknown })?.task;
-		return `${title} ${theme.fg("accent", "4-model review")} ${typeof task === "string" ? oneLine(task) : ""}`;
+		return `${title} ${theme.fg("accent", "configured review")} ${typeof task === "string" ? oneLine(task) : ""}`;
 	}
 	if (Array.isArray(args.tasks)) {
 		const lines = args.tasks.map((item) => `  ${describeTask((item ?? {}) as TaskArgs, theme)}`);

@@ -58,6 +58,19 @@ describe("config", () => {
 		assert.deepEqual(result.config.review.models, ["a/1", "a/2", "a/3", "a/4"]);
 	});
 
+	test("review rosters accept two through four explicit models and the recommended example", () => {
+		for (const count of [2, 3, 4]) {
+			const models = Array.from({ length: count }, (_, i) => ` p/m${i}:high `);
+			const result = loadConfig("/agent", ROLE_NAMES, read(JSON.stringify({ review: { models } })));
+			assert.equal(result.error, undefined);
+			assert.deepEqual(result.config.review.models, models.map((m) => m.trim()));
+		}
+		const example = readFileSync(new URL("../extensions/subagent/subagent.example.json", import.meta.url), "utf8");
+		const result = loadConfig("/agent", ROLE_NAMES, read(example));
+		assert.equal(result.error, undefined);
+		assert.deepEqual(result.config.review.models, ["anthropic/claude-opus-5-5:high", "openai/gpt-6.1-sol:high"]);
+	});
+
 	for (const [text, pattern] of [
 		["{", /invalid JSON/],
 		["[]", /JSON object/],
@@ -70,7 +83,12 @@ describe("config", () => {
 		['{"agents":{"explorer":{"fallbackModels":"p/m"}}}', /array/],
 		['{"agents":{"explorer":{"fallbackModels":[""]}}}', /non-empty strings/],
 		[JSON.stringify({ agents: { explorer: { fallbackModels: Array(9).fill("p/m") } } }), /at most 8/],
-		['{"review":{"models":["a/1","a/2"]}}', /exactly 4/],
+		['{"review":{"models":[]}}', /2-4/],
+		['{"review":{"models":["a/1"]}}', /2-4/],
+		['{"review":{"models":["a/1","a/2","a/3","a/4","a/5"]}}', /2-4/],
+		['{"review":{"models":["a/1",null]}}', /non-empty/],
+		['{"review":{"models":["a/1"," "]}}', /non-empty/],
+		['{"review":{"models":["a/1"," a/1 "]}}', /distinct/],
 		['{"review":{"models":["a/1","a/2","a/3",""]}}', /non-empty/],
 		['{"review":{"models":["a/1","a/1","a/3","a/4"]}}', /distinct/],
 		['{"review":{"models":["a/1","a/2","a/3","a/4"],"unknown":true}}', /only "models"/],
@@ -265,7 +283,11 @@ describe("review_diff", () => {
 describe("requests", () => {
 	test("review form expands the explicit roster and rejects mixtures", () => {
 		const models = ["p/a", "p/b", "p/c", "p/d"];
-		assert.deepEqual(parseRequests({ review: { task: " shared " } }, models), models.map((model) => ({ agent: "reviewer", task: "shared", model })));
+		for (const count of [2, 3, 4]) {
+			const roster = models.slice(0, count);
+			assert.deepEqual(parseRequests({ review: { task: " shared " } }, roster), roster.map((model) => ({ agent: "reviewer", task: "shared", model })));
+		}
+		for (const count of [0, 1, 5]) assert.throws(() => parseRequests({ review: { task: "r" } }, Array(count).fill("p/a")), /2-4 distinct/);
 		for (const params of [{ review: { task: "r" }, agent: "reviewer", task: "x" }, { review: { task: "r" }, tasks: [] }]) assert.throws(() => parseRequests(params, models), /mixture/);
 		for (const review of [null, [], {}, { task: "" }, { task: "r", model: "p/a" }]) assert.throws(() => parseRequests({ review }, models), /review/);
 		assert.throws(() => parseRequests({ review: { task: "r" } }), /Configure review.models/);
@@ -317,7 +339,7 @@ describe("render", () => {
 	});
 
 	test("call text for single and parallel calls", () => {
-		assert.equal(callText({ review: { task: "Review this" } }, plain), "subagent 4-model review Review this");
+		assert.equal(callText({ review: { task: "Review this" } }, plain), "subagent configured review Review this");
 		assert.equal(callText({ agent: "explorer", task: "Find\nit" }, plain), "subagent explorer Find it");
 		assert.equal(callText({ agent: "reviewer", task: "t", model: "p/m" }, plain), "subagent reviewer [p/m] t");
 		assert.equal(callText({ tasks: [{ agent: "reviewer", task: "a" }, { agent: "explorer", task: "b" }] }, plain),

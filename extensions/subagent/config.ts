@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const CONFIG_FILE_NAME = "subagent.json";
-export const REVIEW_MODELS = 4;
+export const MIN_REVIEW_MODELS = 2;
+export const MAX_REVIEW_MODELS = 4;
 export const MAX_FALLBACK_MODELS = 8;
 
 export interface RoleConfig {
@@ -64,8 +65,8 @@ export function loadConfig(
 	if (data.review !== undefined) {
 		if (!object(data.review) || Object.keys(data.review).some((key) => key !== "models")) return fail('"review" must be an object containing only "models".');
 		const models = data.review.models;
-		if (!Array.isArray(models) || models.length !== REVIEW_MODELS || models.some((m) => typeof m !== "string" || !m.trim())) {
-			return fail(`"review.models" must contain exactly ${REVIEW_MODELS} non-empty model strings.`);
+		if (!Array.isArray(models) || models.length < MIN_REVIEW_MODELS || models.length > MAX_REVIEW_MODELS || models.some((m) => typeof m !== "string" || !m.trim())) {
+			return fail(`"review.models" must contain ${MIN_REVIEW_MODELS}-${MAX_REVIEW_MODELS} non-empty model strings.`);
 		}
 		const trimmed = models.map((m: string) => m.trim());
 		if (new Set(trimmed).size !== trimmed.length) return fail('"review.models" must contain distinct models.');

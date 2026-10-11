@@ -68,6 +68,18 @@ shape, retry ownership, and lifecycle details below describe the implemented des
 Reviewer fallback is outside the selected `/review` workflow; the earlier generic
 fallback proposal must not be read as requiring replacements for review slots.
 
+## Follow-up design
+
+The accepted [two-model review design](2026-10-11-two-model-review.md) (BL-7g5t)
+recommends Opus + Sol without optional expansion and proposes accepting explicit
+2–4 model lists while preserving existing four-entry configurations. It replaces
+the fixed-four design constraint for future review implementation, not the
+historical selection or evidence below. BL-5fng implementation and offline
+verification are now complete; source accepts 2–4 entries. The user separately
+authorized the global Opus + Sol roster application, which passed the new loader.
+See the follow-up's [implementation evidence](2026-10-11-two-model-review.md#subsequent-implementation-and-configuration-evidence).
+Reload of the already-running parent and real provider behavior remain unverified.
+
 ## Non-goals
 
 - Further model benchmark experiments or live provider access checks. The selected
@@ -517,3 +529,13 @@ providers, temporary workspaces, and in-memory credentials.
   for the approved implementation/configuration scope.
 - Evidence: Successful `loadConfig` validation and the user's reload report in pi
   session `01a1299f-d4ab-70ab-a076-0e49632aada5`.
+
+### 2026-10-11 — Link the accepted two-model design
+- Change: Added the narrowed Opus + Sol design and its separate implementation
+  candidate, preserving prior four-model decisions and evidence.
+- Reason: The user selected two reviewers only and excluded optional expansion.
+- Impact: The design initially left code/configuration unchanged. Subsequent
+  separately authorized implementation supports explicit 2–4 model lists, and the
+  global roster now selects Opus + Sol. Original four-model evidence is preserved.
+- Evidence: [Two-model design](2026-10-11-two-model-review.md), pi session
+  `01a12b28-32f7-7547-a484-43de317df55b`.

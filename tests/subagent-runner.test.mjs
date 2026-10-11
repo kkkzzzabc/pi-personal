@@ -151,6 +151,58 @@ test("strict explicit explorer model does not use configured fallbacks", async (
  assert.ok(fallback.details.children[0].transitions[0].startsWith("Tried p/b — previous model attempt failed:"));
 });
 
+for (const scenario of ["complete", "resolution", "request", "none", "abort-before", "abort-during", "setup"]) {
+ test(`two-model review: ${scenario}, exact coverage and no extra reviewers`, async () => {
+  const controller = new AbortController();
+  if (scenario === "abort-before") controller.abort();
+  const models = scenario === "resolution" ? ["p/a:high", "missing/b"] : ["p/a:high", "p/b:high"];
+  const f = fixture({ config: { review: { models } }, behavior: {
+   "p/a": (s) => {
+    assert.equal(s.messages.length, 1, "fresh reviewer context");
+    if (scenario === "abort-during") controller.abort();
+    return scenario === "none" ? errorAnswer("401 unauthorized") : answer("REVIEW-A");
+   },
+   "p/b": (s) => {
+    assert.equal(s.messages.length, 1, "fresh reviewer context");
+    return ["request", "none"].includes(scenario) ? errorAnswer("401 unauthorized") : answer("REVIEW-B");
+   },
+  } });
+  if (scenario === "setup") {
+   f.ctx.modelRegistry.getRegisteredProviderIds = () => { throw new Error("shared registry failure"); };
+   await assert.rejects(f.tool.execute("id", { review: { task: "TWO-MODEL-BRIEF" } }, undefined, undefined, f.ctx), /shared registry failure/);
+   assert.equal(f.sessions.length, 0); return;
+  }
+  const updates = [];
+  const r = await f.tool.execute("id", { review: { task: "TWO-MODEL-BRIEF" } }, controller.signal, (u) => updates.push(u), f.ctx);
+  const succeeded = scenario === "complete" ? 2 : ["request", "resolution"].includes(scenario) ? 1 : 0;
+  assert.equal(r.details.children.length, 2); assert.equal(r.details.review.total, 2);
+  assert.equal(r.details.review.succeeded, succeeded);
+  assert.equal(r.details.review.coverage, succeeded === 2 ? "complete" : succeeded ? "partial" : "none");
+  assert.equal(r.isError, succeeded ? undefined : true);
+  assert.ok(updates.every((u) => u.details.review.total === 2));
+  assert.match(r.content[0].text, new RegExp(`${succeeded}/2 succeeded`));
+  if (succeeded === 0) assert.match(r.content[0].text, /No review verdict/);
+  if (scenario.startsWith("abort")) assert.equal(r.details.review.aborted, 2);
+  if (scenario === "resolution") {
+   assert.equal(r.details.children[1].phase, "resolution"); assert.match(r.content[0].text, /missing\/b/);
+  }
+  if (scenario === "request") assert.match(r.content[0].text, /unauthorized/);
+  assert.ok(f.sessions.length <= 2); assert.ok(f.sessions.every((s) => s.disposed));
+  assert.ok(f.prompts.every((p) => p.text === "Task: TWO-MODEL-BRIEF" && ["p/a", "p/b"].includes(p.model)));
+  assert.ok(r.details.children.every((c) => !c.attempts));
+  if (scenario === "complete") {
+   assert.deepEqual(f.prompts.map((p) => p.model).sort(), ["p/a", "p/b"]);
+   assert.equal(r.details.usage.cost, 1); assert.equal(r.details.toolCalls, 0);
+   assert.ok(r.details.durationMs >= 0);
+  }
+ });
+}
+test("two-model resolved duplicates are rejected before any launch", async () => {
+ const f = fixture({ config: { review: { models: ["p/a:high", "alias:low"] } } });
+ await assert.rejects(f.tool.execute("id", { review: { task: "review" } }, undefined, undefined, f.ctx), /duplicate model identities/);
+ assert.equal(f.sessions.length, 0);
+});
+
 test("four-model roster gives each a complete shared brief; one fails without replacement; visible partial coverage", async () => {
  const f = fixture({ config: { review: { models: ["p/a:high", "p/b:high", "p/c:high", "p/d:high"] } }, behavior: { "p/b": () => errorAnswer("unauthorized") } });
  const updates = [];

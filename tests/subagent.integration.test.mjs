@@ -381,6 +381,8 @@ test("pi loads prompts/review.md as /review and expands its arguments", async ()
 	assert.match(withFocus, /one `subagent` call with `review: \{ task:/);
 	assert.match(withFocus, /no review verdict is available/);
 	assert.match(withFocus, /Do not edit any files/);
+	assert.doesNotMatch(withFocus, /four-model|four distinct|4-model/);
+	assert.match(withFocus, /configured review roster/);
 });
 
 test("SDK explorer fallback restarts after a mid-run provider error, not after a strict override", async () => {
@@ -425,6 +427,42 @@ test("SDK host retries settle before explorer fallback", async () => {
 		const r = await parent.captured.tool.execute("id", { agent: "explorer", task: "retry" }, undefined, undefined, parent.captured.ctx);
 		assert.equal(r.details.children[0].status, "completed"); assert.equal(primaryCalls, 2);
 		assert.deepEqual(parent.modelCalls.map((c) => c.id), ["primary", "primary", "backup"]);
+	} finally { await parent.dispose(); }
+});
+
+test("SDK two-model roster has fresh complete reviews and accurate partial/none coverage", async () => {
+	const { fauxAssistantMessage } = await loadAi("dist/index.js");
+	let fail = false;
+	const respond = (context, _o, _s, model) => {
+		assert.equal(context.messages.filter((m) => m.role === "user").length, 1);
+		assert.ok(!context.messages.some((m) => ["assistant", "toolResult", "tool"].includes(m.role)));
+		return fail && model.id === "r2" ? fauxAssistantMessage("", { stopReason: "error", errorMessage: "401 unauthorized" }) : fauxAssistantMessage(`TWO-${model.id}`);
+	};
+	const parent = await createParent({ name: "two-roster-sdk", modelIds: ["r1", "r2", "r3", "r4"], settings: { retry: { enabled: false } }, responses: Array(12).fill(respond) });
+	try {
+		const config = { review: { models: ["faux/r1:high", "faux/r2:high"] } };
+		writeFileSync(join(parent.agentDir, "subagent.json"), JSON.stringify(config));
+		const complete = await parent.captured.tool.execute("complete", { review: { task: "TWO-COMPLETE" } }, undefined, undefined, parent.captured.ctx);
+		assert.equal(complete.details.review.coverage, "complete"); assert.equal(complete.details.review.total, 2);
+		assert.deepEqual(parent.modelCalls.map((c) => c.id).sort(), ["r1", "r2"]);
+		assert.ok(parent.modelCalls.every((c) => JSON.stringify(c.context).includes("TWO-COMPLETE")));
+		assert.ok(complete.details.children.every((c) => !c.attempts));
+		fail = true;
+		const partial = await parent.captured.tool.execute("partial", { review: { task: "TWO-PARTIAL" } }, undefined, undefined, parent.captured.ctx);
+		assert.equal(partial.details.review.succeeded, 1); assert.equal(partial.isError, undefined);
+		assert.match(partial.content[0].text, /partial \(1\/2 succeeded/);
+		config.review.models[1] = "missing/second";
+		writeFileSync(join(parent.agentDir, "subagent.json"), JSON.stringify(config));
+		const count = parent.modelCalls.length;
+		const resolution = await parent.captured.tool.execute("resolution", { review: { task: "TWO-RESOLUTION" } }, undefined, undefined, parent.captured.ctx);
+		assert.equal(parent.modelCalls.length - count, 1); assert.equal(resolution.details.children[1].phase, "resolution");
+		assert.equal(resolution.details.review.succeeded, 1);
+		config.review.models[0] = "missing/first";
+		writeFileSync(join(parent.agentDir, "subagent.json"), JSON.stringify(config));
+		const none = await parent.captured.tool.execute("none", { review: { task: "TWO-NONE" } }, undefined, undefined, parent.captured.ctx);
+		assert.equal(none.isError, true); assert.equal(none.details.review.total, 2);
+		assert.match(none.content[0].text, /none \(0\/2 succeeded.*No review verdict/s);
+		assert.ok(parent.modelCalls.every((c) => ["r1", "r2"].includes(c.id)));
 	} finally { await parent.dispose(); }
 });
 

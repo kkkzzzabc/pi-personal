@@ -260,7 +260,8 @@ work to child agents. Each child is an in-process pi session with fresh
 context; it sees only its task text, cannot edit files or delegate, and returns
 its final answer to the parent. Design and decisions:
 [`docs/plans/2026-10-11-subagent-extension.md`](docs/plans/2026-10-11-subagent-extension.md),
-with [explorer fallback and four-model review](docs/plans/2026-10-11-subagent-model-fallback.md).
+with [explorer fallback](docs/plans/2026-10-11-subagent-model-fallback.md)
+and the [two-model review workflow](docs/plans/2026-10-11-two-model-review.md).
 
 | Role | Use | Tools | Context files | Invoked |
 |---|---|---|---|---|
@@ -275,8 +276,8 @@ with [explorer fallback and four-model review](docs/plans/2026-10-11-subagent-mo
   the full text, saved next to the parent session (`<session>/subagents/`).
 - Esc aborts all running children. The tool stays available in plan mode.
 - `/review [target or focus]` uses `subagent({ review: { task: "..." } })` to run
-  four distinct configured models on the same complete brief. The parent verifies
-  findings and asks before applying fixes. Missing/invalid roster configuration is
+  the distinct configured models on the same complete brief (Opus + Sol recommended).
+  The parent verifies findings and asks before applying fixes. Missing/invalid roster configuration is
   an error, not permission to spawn reviewers on the parent's model.
 - Review model-resolution and request failures are isolated per slot. Successful
   reviews remain usable, with explicit `complete` / `partial` / `none` coverage
@@ -297,21 +298,23 @@ Optional `<agentDir>/subagent.json` (`PI_CODING_AGENT_DIR`, else `~/.pi/agent`):
   "review": {
     "models": [
       "anthropic/claude-opus-5-5:high",
-      "openai/gpt-6.1-sol:high",
-      "xai/grok-4.7:high",
-      "zai/glm-5.3:high"
+      "openai/gpt-6.1-sol:high"
     ]
   }
 }
 ```
 
-The selected configuration is also in
+The recommended two-model configuration is also in
 [`extensions/subagent/subagent.example.json`](extensions/subagent/subagent.example.json).
 It is not automatically installed; existing user settings are not changed.
-An invalid configuration blocks launches until fixed. The roster must contain four
+An invalid configuration blocks launches until fixed. The roster must contain 2–4
 models; duplicate resolved provider/model identities are rejected even if their
-thinking levels differ. Generic manual reviewer calls still accept a single role
-model and do not automatically expand the roster.
+thinking levels differ. Existing three/four-entry lists run all configured models;
+there is no automatic truncation or optional-reviewer expansion. To switch an
+existing user configuration to two reviewers, explicitly replace only its
+`review.models` list after authorization, preserving unrelated settings. Generic
+manual reviewer calls still accept a single role model and do not automatically
+expand the roster.
 
 Explorer-only `fallbackModels` is an ordered list of at most eight alternatives.
 After host-managed retries, terminal model request/authentication failures or

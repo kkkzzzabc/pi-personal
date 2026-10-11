@@ -368,6 +368,14 @@ Tracked in the [project backlog](../backlog/).
   are complete; see the follow-up's [evidence](2026-10-11-subagent-model-fallback.md#verification-evidence).
   Live user settings were not changed. Original scope/verification remain historical.
 
+- **Accepted design follow-up:** [Two-model review](2026-10-11-two-model-review.md)
+  (BL-7g5t) recommends Opus + Sol without optional expansion. It proposes explicit
+  2–4 model roster support while preserving existing four-entry configurations.
+  BL-5fng implementation and offline verification are complete; the user separately
+  authorized the global two-model roster application. See the follow-up's
+  [evidence](2026-10-11-two-model-review.md#subsequent-implementation-and-configuration-evidence).
+  Running-parent reload remains unverified; historical evidence above is preserved.
+
 - **Candidate next plan:** background execution together with a `worker`
   role (BL-007). The issue survey shows async use mainly for workers.
 - **Trigger:** observed need during real use, such as waiting blocking the
@@ -448,3 +456,13 @@ Tracked in the [project backlog](../backlog/).
   Live settings and real-model access remain outside that completed scope.
 - Evidence: [Follow-up verification](2026-10-11-subagent-model-fallback.md#verification-evidence),
   pi session `01a1299f-d4ab-70ab-a076-0e49632aada5`.
+
+### 2026-10-11 — Link the accepted two-model review design
+- Change: Added the Opus + Sol design follow-up and separate implementation
+  candidate without rewriting original or four-model verification history.
+- Reason: The user chose two reviewers only, excluding optional expansion.
+- Impact: The follow-up relaxes the fixed-four constraint with backward
+  compatibility. Subsequent authorized implementation and global configuration
+  application are complete; running-parent reload remains unverified.
+- Evidence: [Two-model design](2026-10-11-two-model-review.md), pi session
+  `01a12b28-32f7-7547-a484-43de317df55b`.
