@@ -38,6 +38,10 @@ Create with `python3 scripts/backlog.py new "<title>" --kind <kind>`; list with
 `python3 scripts/backlog.py list`. Frontmatter status is `active`, `next`,
 `blocked`, `candidate`, `done`, or `dropped`.
 
+A request to build something gets one item covering design and implementation;
+split off a design item only when the user asks for design only or defers
+implementation ([ADR 0004](adr/0004-one-backlog-item-for-design-and-implementation.md)).
+
 Items state outcomes and next actions, linking to source records for evidence and
 design. Keep `Approval` to one line: `Candidate only.` or approved scope/session.
 On closure, add one `Closure` line with the result link or drop reason. Item files
