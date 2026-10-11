@@ -1,7 +1,7 @@
 ---
 id: BL-udz6
 title: Add the pi-perf-log row to the README resource table
-status: candidate
+status: done
 kind: Implementation
 ---
 
@@ -12,4 +12,5 @@ kind: Implementation
 - Done when: The row is present and accurate.
 - Trigger: README.md free of other sessions' uncommitted edits.
 - References: [pi-perf-log plan](../plans/2026-10-12-pi-perf-log.md); [session skills plan](../plans/2026-10-12-pi-session-skills.md).
-- Approval: Candidate only.
+- Approval: Approved in session `01a12bfb-c9ab-735a-8d64-9cb2385d9b31`.
+- Closure: Done — row added to the [README resource table](../../README.md), including render frames from BL-u9b6 and a schema link.

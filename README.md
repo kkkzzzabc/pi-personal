@@ -46,6 +46,7 @@ Project work is indexed in [the backlog](docs/backlog/) (`python3 scripts/backlo
 | `subagent/` | Extension | `subagent` tool: read-only `explorer` and `reviewer` child agents with fresh context (see [Subagents](#subagents)) |
 | `prompt-suggestions/` | Extension | Optional next-user prompt as ghost text; Tab accepts without submitting (see [Next-prompt suggestions](#next-prompt-suggestions)) |
 | `turn-summary/` | Extension | Three-line Done/Open/Next summary above the editor after each turn (see [Turn summaries](#turn-summaries)) |
+| `pi-perf-log/` | Extension | Per-turn timing (connect, TTFT, provider, tool span, overhead), TUI render frames, and process memory to `<agentDir>/perf/<sessionId>.jsonl`; no conversation content; `pi-perf-log.json` to disable ([schema](extensions/pi-perf-log/SCHEMA.md)) |
 | `review` | Prompt | `/review [target or focus]`: parallel reviewer subagents, verified and summarized; asks before fixing |
 | `explain-with-visuals` | Skill | Editorial visual explanations: offline HTML, layered prose, local browser QA and delivery |
 | `perf-audit` | Skill | Audit and fix pi performance without a reference fork: measure first, fix only superlinear or unbounded paths, prove with count-based tests |
