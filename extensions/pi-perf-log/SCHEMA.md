@@ -1,7 +1,7 @@
 # pi-perf-log JSONL schema, version 1
 
 One file per session: `<agentDir>/perf/<sessionId>.jsonl` (or the configured
-`dir`). One JSON object per line. This file is the only contract between
+absolute `dir` in `pi-perf-log.json`). One JSON object per line. This file is the only contract between
 `pi-perf-log` and readers such as `pi-session-stats`.
 
 Records never contain prompt text, assistant text, tool arguments, tool

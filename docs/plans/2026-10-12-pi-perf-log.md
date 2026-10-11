@@ -36,8 +36,8 @@ synthetic sizes.
 - Lifecycle rules derived from the fork sources:
   - `turn_end` is not guaranteed (the host skips it when the persisted
     assistant entry id cannot be resolved). A pending turn is flushed at the
-    next `turn_start`, `agent_end`, `session_start` or `session_shutdown`
-    with `turnEndMissing: true`.
+    next `turn_start`, `agent_start`, `agent_end`, `session_start` or
+    `session_shutdown` with `turnEndMissing: true`.
   - `turnIndex` restarts at 0 for every prompt (`agent_start`); records add
     `promptSeq`, the count of `agent_start` since `session_start`.
   - The stream `start` event arrives as `message_start`, not
@@ -82,3 +82,9 @@ synthetic sizes.
 - Reason: Two-model review of `ad39307` found connect times recorded for failures without a stream (host emits a synthetic `message_start`), overhead clamped to 0 under the default parallel tool execution, and a false join claim for `promptSeq` across resume/reload and auto-retry runs.
 - Impact: Schema stays v1 (no reader existed yet); field set changed as above. Test count 19 → 23. A faux-model `tui-check` run confirmed `messageEntryId` equals the session file's assistant entry ids.
 - Evidence: Session `01a12ba1-74b5-76b8-bc4a-1d2e52383857`; fork `agent-loop.ts` (synthetic `message_start`, parallel tool execution), `agent-session.ts` (`agent.continue()` after retryable failures).
+
+### 2026-10-12 — Optional review items
+- Change: `dir` must be an absolute path; handlers use the public event types from `@earendil-works/pi-coding-agent`; `agent_start` flush path tested and listed in the design; follow-ups registered as backlog candidates (BL-wdgq, BL-u9b6, BL-4egs, BL-udz6).
+- Reason: Optional findings from the review of `ad39307`.
+- Impact: No behavior change except rejecting relative `dir` values. Test count 23 (assertions added).
+- Evidence: Session `01a12ba1-74b5-76b8-bc4a-1d2e52383857`.

@@ -100,7 +100,7 @@ describe("Recorder", () => {
 		assert.equal(recorder.turnEnd().ttftMs, null);
 	});
 
-	test("a missing turn_end is flushed by the next turn_start, agent_end, session_start, or shutdown", () => {
+	test("a missing turn_end is flushed by the next turn_start, agent_end, agent_start, session_start, or shutdown", () => {
 		const clock = fakeClock();
 		const recorder = new Recorder(clock, () => "s");
 		recorder.turnStart(0);
@@ -113,6 +113,8 @@ describe("Recorder", () => {
 		assert.equal(byAgentEnd.flushed.flushedBy, "agent_end");
 		assert.equal(byAgentEnd.flushed.turnIndex, 1);
 		recorder.turnStart(2);
+		assert.equal(recorder.agentStart().flushedBy, "agent_start");
+		recorder.turnStart(3);
 		assert.equal(recorder.sessionStart("new").flushed.flushedBy, "session_start");
 		recorder.turnStart(0);
 		assert.equal(recorder.shutdown().flushedBy, "shutdown");
@@ -262,8 +264,11 @@ describe("config", () => {
 	test("validateConfig rejects unknown and mistyped fields", () => {
 		assert.throws(() => validateConfig({ bogus: 1 }), /Unknown configuration field/);
 		assert.throws(() => validateConfig({ enabled: "yes" }), /enabled must be a boolean/);
-		assert.throws(() => validateConfig({ dir: 1 }), /dir must be/);
-		assert.throws(() => validateConfig({ dir: "" }), /dir must be/);
+		assert.throws(() => validateConfig({ dir: 1 }), /dir must be an absolute path/);
+		assert.throws(() => validateConfig({ dir: "" }), /dir must be an absolute path/);
+		assert.throws(() => validateConfig({ dir: "relative/perf" }), /dir must be an absolute path/);
+		assert.throws(() => validateConfig({ dir: "~/perf" }), /dir must be an absolute path/);
+		assert.deepEqual(validateConfig({ dir: "/abs/perf" }), { dir: "/abs/perf" });
 		assert.throws(() => validateConfig([]), /Expected an object/);
 		assert.deepEqual(validateConfig({ enabled: false, dir: null }), { enabled: false, dir: null });
 	});

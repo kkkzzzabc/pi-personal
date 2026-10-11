@@ -1,10 +1,10 @@
 /** Independent configuration; never reads another extension's settings. */
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 export interface PerfLogConfig {
 	enabled: boolean;
-	/** Output directory; null means `<agentDir>/perf`. */
+	/** Absolute output directory; null means `<agentDir>/perf`. */
 	dir: string | null;
 }
 export const DEFAULTS: PerfLogConfig = { enabled: true, dir: null };
@@ -14,7 +14,7 @@ export function validateConfig(data: unknown): Partial<PerfLogConfig> {
 	const value = data as Record<string, unknown>;
 	if (Object.keys(value).some((key) => !Object.hasOwn(DEFAULTS, key))) throw new Error("Unknown configuration field");
 	if (value.enabled !== undefined && typeof value.enabled !== "boolean") throw new Error("enabled must be a boolean");
-	if (value.dir !== undefined && value.dir !== null && (typeof value.dir !== "string" || value.dir.length === 0)) throw new Error("dir must be a non-empty string or null");
+	if (value.dir !== undefined && value.dir !== null && (typeof value.dir !== "string" || !isAbsolute(value.dir))) throw new Error("dir must be an absolute path or null");
 	return value as Partial<PerfLogConfig>;
 }
 

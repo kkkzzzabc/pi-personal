@@ -4,7 +4,10 @@
  * Plan: docs/plans/2026-10-12-pi-perf-log.md. Schema: SCHEMA.md.
  * Every handler swallows errors: a logging failure must never affect the session.
  */
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+	AgentEndEvent, AgentStartEvent, ExtensionAPI, ExtensionContext, MessageEndEvent, MessageStartEvent, MessageUpdateEvent,
+	SessionShutdownEvent, SessionStartEvent, ToolExecutionEndEvent, ToolExecutionStartEvent, TurnEndEvent, TurnStartEvent,
+} from "@earendil-works/pi-coding-agent";
 import { loadConfig, outputDir, type PerfLogConfig } from "./config.ts";
 import { type Clock, type PerfRecord, Recorder, systemClock } from "./recorder.ts";
 import { createWriter, type Writer } from "./writer.ts";
@@ -56,7 +59,7 @@ export function createPerfLogExtension(deps: Dependencies) {
 			}
 		};
 
-		pi.on("session_start", guarded((event: { reason: string }, context) => {
+		pi.on("session_start", guarded((event: SessionStartEvent, context) => {
 			const loaded = load(deps.agentDir(), context.cwd, context.isProjectTrusted());
 			config = loaded.config;
 			const result = recorder.sessionStart(event.reason);
@@ -64,31 +67,32 @@ export function createPerfLogExtension(deps: Dependencies) {
 			if (loaded.error && context.hasUI) context.ui.notify(`pi-perf-log: ${loaded.error}`, "warning");
 			write(result.flushed, result.session);
 		}));
-		pi.on("agent_start", guarded(() => write(recorder.agentStart())));
-		pi.on("turn_start", guarded((event: { turnIndex: number }) => write(recorder.turnStart(event.turnIndex))));
-		pi.on("message_start", guarded((event: { message: { role: string; stopReason?: string } }) => {
+		pi.on("agent_start", guarded((_event: AgentStartEvent) => write(recorder.agentStart())));
+		pi.on("turn_start", guarded((event: TurnStartEvent) => write(recorder.turnStart(event.turnIndex))));
+		pi.on("message_start", guarded((event: MessageStartEvent) => {
 			// The host synthesizes message_start for a final error/aborted message when no stream opened.
-			const { role, stopReason } = event.message;
-			if (role === "assistant" && stopReason !== "error" && stopReason !== "aborted") recorder.assistantMessageStart();
+			const message = event.message;
+			if (message.role === "assistant" && message.stopReason !== "error" && message.stopReason !== "aborted") recorder.assistantMessageStart();
 		}));
-		pi.on("message_update", guarded((event: { message: { role: string }; assistantMessageEvent: { type: string } }) => {
+		pi.on("message_update", guarded((event: MessageUpdateEvent) => {
 			if (event.message.role === "assistant") recorder.assistantUpdate(event.assistantMessageEvent.type);
 		}));
-		pi.on("message_end", guarded((event: { message: { role: string } & Record<string, unknown> }) => {
-			if (event.message.role === "assistant") recorder.assistantMessageEnd(event.message);
+		pi.on("message_end", guarded((event: MessageEndEvent) => {
+			const message = event.message;
+			if (message.role === "assistant") recorder.assistantMessageEnd(message);
 		}));
 		// Nested calls (for example from a codemode script) are inside their parent's span and count.
-		pi.on("tool_execution_start", guarded((event: { parentToolCallId?: string }) => {
+		pi.on("tool_execution_start", guarded((event: ToolExecutionStartEvent) => {
 			if (!event.parentToolCallId) recorder.toolStart();
 		}));
-		pi.on("tool_execution_end", guarded((event: { toolName: string; durationMs?: number; parentToolCallId?: string }) => {
+		pi.on("tool_execution_end", guarded((event: ToolExecutionEndEvent) => {
 			if (!event.parentToolCallId) recorder.toolEnd(event.toolName, event.durationMs);
 		}));
-		pi.on("turn_end", guarded((event: { messageEntryId?: string }) => write(recorder.turnEnd(event.messageEntryId))));
-		pi.on("agent_end", guarded(() => {
+		pi.on("turn_end", guarded((event: TurnEndEvent) => write(recorder.turnEnd(event.messageEntryId))));
+		pi.on("agent_end", guarded((_event: AgentEndEvent) => {
 			const result = recorder.agentEnd();
 			write(result.flushed, result.run);
 		}));
-		pi.on("session_shutdown", guarded(() => write(recorder.shutdown())));
+		pi.on("session_shutdown", guarded((_event: SessionShutdownEvent) => write(recorder.shutdown())));
 	};
 }
